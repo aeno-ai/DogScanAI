@@ -2,3 +2,43 @@ node_modules
 backend/.env
 dogs
 dogs_backup_20260117_210112
+# Environment files
+.env
+.env.*
+.venv/
+venv/
+ENV/
+pip-wheel-metadata/
+
+# Python caches & test artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Packaging
+*.egg-info/
+dist/
+build/
+
+# Logs and temporary files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+tmp/
+temp/
+*.sqlite
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+.ipynb_checkpoints/
