@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Dog, Menu, X } from "lucide-react";
 
 const Navigation = () => {
@@ -38,9 +39,18 @@ const Navigation = () => {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-4">
-          <button className="text-gray-500 hover:text-gray-900 px-4 py-2">
+          <Link
+            to="/login"
+            className="text-gray-500 hover:text-gray-900 px-4 py-2"
+          >
             Sign In
-          </button>
+          </Link>
+          <Link
+            to="/register"
+            className="text-gray-500 hover:text-gray-900 px-4 py-2"
+          >
+            Register
+          </Link>
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
             Get the App
           </button>
@@ -52,7 +62,11 @@ const Navigation = () => {
           className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
           aria-label="Toggle menu"
         >
-          {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {isMenuOpen ? (
+            <X className="w-6 h-6" />
+          ) : (
+            <Menu className="w-6 h-6" />
+          )}
         </button>
       </nav>
 
@@ -75,17 +89,17 @@ const Navigation = () => {
               {link.label}
             </a>
           ))}
-          
+
           <hr className="my-3 border-gray-200" />
-          
-          <a
-            href="#signin"
+
+          <Link
+            to="/login"
             onClick={() => setIsMenuOpen(false)}
             className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
           >
             Sign In
-          </a>
-          
+          </Link>
+
           <a
             href="#app"
             onClick={() => setIsMenuOpen(false)}
@@ -105,6 +119,6 @@ const Navigation = () => {
       )}
     </header>
   );
-}
+};
 
 export default Navigation;
