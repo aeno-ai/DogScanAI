@@ -31,7 +31,7 @@ const DashboardPage = () => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="p-2 rounded-md hover:bg-gray-100"
+                className="block sm:hidden p-2 rounded-md hover:bg-gray-100"
                 aria-label="Open sidebar"
               >
                 <svg
@@ -55,8 +55,8 @@ const DashboardPage = () => {
               </span>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">{user?.email}</span>
+            <div className="hidden sm:flex items-center space-x-4">
+              <span className=":block text-sm text-gray-700">{user?.email}</span>
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
