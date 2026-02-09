@@ -24,7 +24,7 @@ const features = [
   {
     icon: Dna,
     title: "Mixed Breed Analysis",
-    description: "Discover the unique genetic makeup of your mixed breed companion.",
+    description: "Find out if the scanned dog may be a mixed breed.",
   },
   {
     icon: Clock,
