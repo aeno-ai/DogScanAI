@@ -48,7 +48,7 @@ TEMP_GRID = np.linspace(0.5, 5.0, 46)  # grid for temperature search (1.0 = no s
 UNCERTAIN_THRESHOLDS = {
     "max_prob": 0.55,      # RAISED: if highest prob < 55% -> likely mixed (was 0.45)
     "margin": 0.18,        # RAISED: if top1-top2 < 18% -> likely mixed (was 0.12)
-    "top3_sum": 0.70,      # RAISED: if sum(top3) < 70% -> uncertain (was 0.60)
+    "top3_sum": 0.60,      # RAISED: if sum(top3) < 70% -> uncertain (was 0.60)
     "entropy": 0.8,        # LOWERED: if entropy > 0.8 -> likely mixed (was 1.0)
 }
 
@@ -248,8 +248,7 @@ else:
             # Uncertain but not clearly mixed
             print(f"[DOG] Predicted: {class_names[top_idx[0]]} ({p1*100:.1f}%)")
             print("      Other possibilities:")
-            for idx, prob_pct in zip(top_idx[1:TOP_K], mix_percent[1:TOP_K]):
-                if preds[idx] >= 0.05:  # Only show if > 5%
-                    print(f"      * {class_names[idx]}: {prob_pct:.0f}%")
+            for idx, prob_pct in zip(top_idx[1:TOP_K], mix_percent[1:TOP_K]):     
+                print(f"      * {class_names[idx]}: {prob_pct:.0f}%")
 
 print("Done.")

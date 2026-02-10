@@ -20,19 +20,34 @@ const Navigation = () => {
     { href: "#gallery", label: "Gallery" },
   ];
 
+  // Truncate email to max 18 characters for the panel
+  const truncateEmail = (email) => {
+    if (!email) return "";
+    return email.length > 18 ? email.substring(0, 18) + "..." : email;
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200">
-      <nav className="max-w-7xl mx-auto flex items-center justify-between h-16 md:h-20 px-4 md:px-6">
+      <nav className="justify-start md:justify-between max-w-7xl mx-auto flex items-center gap-3 h-16 md:h-20 px-4 md:px-6 ">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setIsMenuOpen((s) => !s)}
+          className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <Link to="/" className="font-bold text-xl text-gray-900 flex items-center gap-2">
-            {/* optional icon */}
-            <span>DogScan<span className="text-blue-600">AI</span></span>
+          <Link to="/" className="font-bold text-lg text-gray-900 flex items-center gap-2">
+            <span>
+              DogScan<span className="text-blue-600">AI</span>
+            </span>
           </Link>
         </div>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-4 text-md lg:text-lg">
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -75,29 +90,49 @@ const Navigation = () => {
               Register
             </Link>
 
-            <a href="#app" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+            <a
+              href="#app"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
               Get the App
             </a>
           </div>
         )}
 
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setIsMenuOpen((s) => !s)}
-          className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
-          aria-label="Toggle menu"
-        >
-          {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        
       </nav>
 
-      {/* Mobile Menu Dropdown */}
-      <div
-        className={`md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg transition-all duration-200 ease-in-out ${
-          isMenuOpen ? "opacity-100 translate-y-0 visible" : "opacity-0 -translate-y-2 invisible"
+      {/* Mobile Side Panel */}
+      {/* Panel slides in from left; header retains z-50 so panel sits under the header like your Sidebar file */}
+      <aside
+        className={`h-screen md:hidden fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-40 transform transition-transform duration-300 ${
+          isMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
+        aria-hidden={!isMenuOpen}
       >
-        <div className="px-4 py-4 space-y-1">
+        <div className="p-4 border-b flex items-center justify-between">
+          <h4 className="font-semibold">Menu</h4>
+
+          <div className="flex items-center gap-2">
+            {user && (
+              <p
+                className="text-sm text-gray-600 truncate max-w-[120px]"
+                title={user?.email}
+              >
+                {truncateEmail(user?.email)}
+              </p>
+            )}
+            <button
+              onClick={() => setIsMenuOpen(false)}
+              className="p-1 rounded hover:bg-gray-100 flex-shrink-0"
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <nav className="p-4 space-y-2 bg-white h-full overflow-auto">
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -158,13 +193,13 @@ const Navigation = () => {
               </a>
             </>
           )}
-        </div>
-      </div>
+        </nav>
+      </aside>
 
-      {/* Overlay for mobile menu */}
+      {/* Overlay for mobile side panel */}
       {isMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/20"
+          className="md:hidden fixed inset-0 bg-black/20 z-30"
           onClick={() => setIsMenuOpen(false)}
           aria-hidden
         />

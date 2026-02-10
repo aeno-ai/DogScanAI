@@ -1,76 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-
-// components
-import Sidebar from '../../components/ui/Sidebar';
+import { useAuth } from "../context/AuthContext";
+import TopNav from "../components/ui/TopNav";
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate("/");
-  };
+  const { user } = useAuth();
 
   return (
-    
     <div className="min-h-screen relative bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
-      <Sidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onLogout={handleLogout}
-      />
-      {/* Navigation Bar */}
-      
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="block sm:hidden p-2 rounded-md hover:bg-gray-100"
-                aria-label="Open sidebar"
-              >
-                <svg
-                  className="w-6 h-6 text-gray-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              </button>
-
-              <span className="font-bold text-xl text-gray-900">
-                DogScan<span className="text-blue-600">AI</span>
-              </span>
-            </div>
-
-            <div className="hidden sm:flex items-center space-x-4">
-              <span className=":block text-sm text-gray-700">{user?.email}</span>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <TopNav />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
         {/* Welcome Card */}
         <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg p-8 mb-8 text-white">
           <h2 className="text-3xl font-bold mb-2">
