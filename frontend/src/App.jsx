@@ -11,8 +11,8 @@ import LoginPage from "./pages/auth/Login";
 import SignUpPage from "./pages/auth/Register";
 import DashboardPage from "./pages/Dashboard";
 import DogLibrary from "./pages/DogLibrary"
-
-import "./App.css";
+import HistoryPage from "./pages/History";
+import ProfilePage from "./pages/ProfilePage";
 
 function App() {
   return (
@@ -32,7 +32,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
-                <DogLibrary/>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/doglibrary"
+            element={
+              <ProtectedRoute>
+                <DogLibrary />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <HistoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

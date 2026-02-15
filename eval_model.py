@@ -9,12 +9,13 @@ import tensorflow as tf
 
 # ========== Model Loading ==========
 MODEL_DIR = "models/trained_model"
-LABELS_FILE = "models/class_names.json"
+LABELS_FILE = "models/class_names.json" 
 
 print("Loading model...")
 model = tf.keras.models.load_model(os.path.join(MODEL_DIR, "best_finetuned.h5"))
 with open(LABELS_FILE, "r", encoding="utf-8") as f:
-    class_names = json.load(f)
+    class_info = json.load(f)  # ← CHANGED: Load full class info
+    class_names = [breed["display_name"] for breed in class_info]  # ← CHANGED: Extract display names
 print(f"Model loaded. {len(class_names)} breeds supported.")
 
 # ========== Helper Functions ==========
@@ -214,7 +215,7 @@ else:
 
         # Determine if it's a confident pure breed
         is_pure_breed = p1 >= MIXED_BREED_SETTINGS["confident_threshold"]
-
+    
         # print results
         print("\n" + "="*50)
         print("Image:", p)
@@ -242,7 +243,7 @@ else:
                 if raw_prob >= MIXED_BREED_SETTINGS["min_secondary_prob"] and shown < MIXED_BREED_SETTINGS["max_breeds_to_show"]:
                     bar_len = int(prob_pct / 5)  # Visual bar
                     bar = "#" * bar_len + "-" * (20 - bar_len)
-                    print(f"      * {class_names[idx]:25s} [{bar}] {prob_pct:.0f}%")
+                    print(f"      * {class_names[idx]:25s} [{bar}] {prob_pct:.0f}%")  # ← FIXED: Use idx directly
                     shown += 1
         else:
             # Uncertain but not clearly mixed

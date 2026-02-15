@@ -1,11 +1,13 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-require("dotenv").config();
+require('dotenv').config();
 
 // Import routes
 const authRoutes = require("./routes/auth");
 const scanRoutes = require("./routes/scans");
+const breedsRoutes = require("./routes/breeds.routes");
+
 
 const app = express();
 
@@ -32,6 +34,8 @@ app.use(
 
 app.use(express.json()); // Parse JSON bodies
 app.use(cookieParser()); // Parse cookies (for web)
+app.use(express.urlencoded({ extended: true }));
+
 
 // ============================================
 // ROUTES
@@ -39,10 +43,23 @@ app.use(cookieParser()); // Parse cookies (for web)
 
 app.use("/api/auth", authRoutes);
 app.use("/api/scans", scanRoutes);
+app.use("/api", breedsRoutes);
+
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({ status: "Server is running!" });
+});
+
+// testing ng endpoints
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Dog Breeds API is running!',
+    endpoints: {
+      allBreeds: '/api/breeds',
+      singleBreed: '/api/breeds/:id'
+    }
+  });
 });
 
 // 404 handler
@@ -50,6 +67,24 @@ app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
+
+// Add this right after your routes section in server.js
+app.get('/api/test-db', async (req, res) => {
+  const pool = require('./config/database');
+  try {
+    const result = await pool.query('SELECT COUNT(*) FROM breeds');
+    res.json({ 
+      success: true, 
+      count: result.rows[0].count 
+    });
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
 // ============================================
 // START SERVER
 // ============================================

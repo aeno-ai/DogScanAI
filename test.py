@@ -1,137 +1,111 @@
-# import os, sys
-# import tensorflow as tf
-# print("TensorFlow version:", tf.__version__)
-# print("GPUs:", tf.config.list_physical_devices("GPU"))
-
-
-# import os,sys
-# print("Python EXE:", sys.executable)
-# print("PATH (first 10 entries):")
-# for p in os.environ.get('PATH','').split(';')[:30]:
-#     print("  ", p)
-
-# import ctypes
-# import os
-# p = r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin\cudnn64_8.dll"
-# print("exists:", os.path.exists(p))
-# try:
-#     ctypes.CDLL(p)
-#     print("Successfully loaded cudnn DLL")
-# except Exception as e:
-#     print("Failed to load cudnn DLL:", e)
-
-# import os
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'   # show all logs
-# import tensorflow as tf
-# tf.debugging.set_log_device_placement(True)
-# a = tf.constant([[1.0,2.0],[3.0,4.0]])
-# b = tf.matmul(a, a)
-# print("matmul result:", b.numpy())
-# print("physical:", tf.config.list_physical_devices('GPU'))
-
-
-# import tensorflow as tf
-# print("TensorFlow version:", tf.__version__)
-# gpus = tf.config.list_physical_devices('GPU')
-# print("GPUs detected:", gpus)
-
-
-# import tensorflow as tf, json; print('tf:', tf.__version__); 
-# print('tf path:', tf.__file__); 
-# try: print('build_info:', json.dumps(tf.sysconfig.get_build_info(), indent=2)); 
-# except: print('no build_info'); 
-# print('built_with_cuda:', tf.test.is_built_with_cuda()); 
-# print('GPUs:', tf.config.list_physical_devices('GPU'))
-
-
-# import ctypes
-# import os
-# libs = ["libcudart.so", "libcublas.so", "libcudnn.so"]
-# for lib in libs:
-#     try:
-#         ctypes.cdll.LoadLibrary(os.path.join("/usr/lib/cuda/lib64", lib))
-#         print(lib, "found")
-#     except OSError as e:
-#         print(lib, "missing!", e)
-
-#!/usr/bin/env python3
-# rename_wnid_folders.py
-# Renames folders like "n323151-Chihuahua" -> "Chihuahua"
-# - safe dry-run by default
-# - writes mapping JSON (wnid_to_breed.json) in the data_dir
-# - resolves name collisions by appending _1, _2, ...
-#
-# Usage examples:
-#  python rename_wnid_folders.py ./dogs            # dry-run (preview)
-#  python rename_wnid_folders.py ./dogs --apply    # actually rename
-#  python rename_wnid_folders.py ./dogs --apply --replace-spaces  # replace spaces with underscores
-
 import os
+import shutil
 import json
-import numpy as np
-import tensorflow as tf
-from tensorflow import keras
 from pathlib import Path
 
-# -------- CONFIG --------
-MODEL_DIR = "dog_cpu_model"
-MODEL_PATH = os.path.join(MODEL_DIR, "saved_model")
-CLASS_NAMES_PATH = os.path.join(MODEL_DIR, "class_names.json")
-IMAGE_FOLDER = "sample"
-IMG_SIZE = 160
-TOP_K = 5
-# ------------------------
+# ========== Configuration ==========
+TRAIN_DIR = "dogs"  # Your training folder with breed subfolders
+OUTPUT_DIR = "breed_library_images"  # Where to save the extracted images
+CLASS_INFO_FILE = "models/class_names.json"  # Your class info file
 
-# Load class names
-with open(CLASS_NAMES_PATH, "r", encoding="utf-8") as f:
-    class_names = json.load(f)
+# Create output directory
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-num_classes = len(class_names)
-print(f"Loaded {num_classes} classes")
+# Load class info to get proper breed names and IDs
+with open(CLASS_INFO_FILE, 'r', encoding='utf-8') as f:
+    class_info = json.load(f)
 
-# Load model
-print("Loading model...")
-model = tf.keras.Sequential([
-    keras.layers.TFSMLayer(
-        "dog_cpu_model/saved_model",
-        call_endpoint="serving_default"
-    )
-])
+print("="*70)
+print("EXTRACTING ONE IMAGE PER BREED")
+print("="*70)
+print(f"Source: {TRAIN_DIR}")
+print(f"Output: {OUTPUT_DIR}")
+print("="*70)
 
-print("Model loaded")
+extracted_count = 0
+skipped_count = 0
+image_mapping = []
 
-# Preprocessing
-normalization = tf.keras.layers.Rescaling(1.0 / 255.0)
+# Process each breed folder
+breed_folders = sorted([f for f in os.listdir(TRAIN_DIR) 
+                       if os.path.isdir(os.path.join(TRAIN_DIR, f))])
 
-def load_image(path):
-    img = tf.io.read_file(path)
-    img = tf.image.decode_image(img, channels=3, expand_animations=False)
-    img = tf.image.resize(img, (IMG_SIZE, IMG_SIZE))
-    img = normalization(img)
-    img = tf.expand_dims(img, axis=0)
-    return img
+for idx, folder_name in enumerate(breed_folders):
+    folder_path = os.path.join(TRAIN_DIR, folder_name)
+    
+    # Get all image files in this folder
+    image_files = [f for f in os.listdir(folder_path) 
+                   if f.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.webp'))]
+    
+    if not image_files:
+        print(f"⚠️  Skipped: {folder_name} (no images found)")
+        skipped_count += 1
+        continue
+    
+    # Get breed info from class_info.json
+    breed = class_info[idx]
+    breed_id = breed['breed_id']
+    breed_name = breed['display_name']
+    class_name = breed['class_name']
+    
+    # Select the first image
+    source_image_path = os.path.join(folder_path, image_files[0])
+    
+    # Get file extension
+    file_extension = os.path.splitext(image_files[0])[1].lower()
+    
+    # Create new filename: "001_Affenpinscher.jpg"
+    new_filename = f"{breed_id:03d}_{class_name.replace(' ', '_')}{file_extension}"
+    destination_path = os.path.join(OUTPUT_DIR, new_filename)
+    
+    # Copy the image
+    try:
+        shutil.copy2(source_image_path, destination_path)
+        
+        # Store mapping information
+        image_mapping.append({
+            "breed_id": breed_id,
+            "class_index": idx,
+            "class_name": class_name,
+            "display_name": breed_name,
+            "original_filename": image_files[0],
+            "new_filename": new_filename,
+            "image_url": f"/images/breeds/{new_filename}"
+        })
+        
+        extracted_count += 1
+        print(f"✅ {breed_id:3d}. {breed_name:35s} → {new_filename}")
+        
+    except Exception as e:
+        print(f"❌ Error copying {breed_name}: {e}")
+        skipped_count += 1
 
-# Run inference
-image_paths = sorted([
-    p for p in Path(IMAGE_FOLDER).iterdir()
-    if p.suffix.lower() in [".jpg", ".jpeg", ".png", ".bmp", ".webp"]
-])
+# Save mapping to JSON file
+mapping_file = "breed_images_mapping.json"
+with open(mapping_file, 'w', encoding='utf-8') as f:
+    json.dump(image_mapping, f, indent=2, ensure_ascii=False)
 
-if not image_paths:
-    print("❌ No images found in:", IMAGE_FOLDER)
-    exit(1)
+print("="*70)
+print(f"\n✅ EXTRACTION COMPLETE!")
+print(f"   • Extracted: {extracted_count} images")
+if skipped_count > 0:
+    print(f"   • Skipped: {skipped_count} breeds")
+print(f"   • Images saved to: {OUTPUT_DIR}/")
+print(f"   • Mapping saved to: {mapping_file}")
 
-print(f"\nFound {len(image_paths)} images\n")
+print("\n📋 NEXT STEPS:")
+print("   1. Check the images in 'breed_library_images/' folder")
+print("   2. Copy them to your project: public/images/breeds/")
+print("   3. Run 'python generate_chatgpt_prompt.py' to create the prompt")
+print("   4. Use ChatGPT to generate full breed data")
+print("="*70)
 
-for img_path in image_paths:
-    img = load_image(str(img_path))
-    outputs = model.predict(img, verbose=0)
-    preds = list(outputs.values())[0][0]
+# Also create a quick preview file
+preview_file = "extracted_images_preview.txt"
+with open(preview_file, 'w', encoding='utf-8') as f:
+    f.write("EXTRACTED BREED IMAGES\n")
+    f.write("="*70 + "\n\n")
+    for item in image_mapping:
+        f.write(f"{item['breed_id']:3d}. {item['display_name']:35s} → {item['new_filename']}\n")
 
-
-    top_indices = np.argsort(preds)[-TOP_K:][::-1]
-
-    print(f"📸 {img_path.name}")
-    for rank, idx in enumerate(top_indices, 1):
-        print(f"  {rank}. {class_names[idx]:25s} {preds[idx]*100:.2f}%")
-    print("-" * 40)
+print(f"\n📄 Preview list saved to: {preview_file}")

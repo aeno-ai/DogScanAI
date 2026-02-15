@@ -1,0 +1,123 @@
+EXTRACTED BREED IMAGES
+======================================================================
+
+  1. Affenpinscher                       → 001_Affenpinscher.jpg
+  2. Afghan Hound                        → 002_Afghan_Hound.jpg
+  3. African Hunting Dog                 → 003_African_Hunting_Dog.jpg
+  4. Airedale Terrier                    → 004_Airedale.jpg
+  5. American Staffordshire Terrier      → 005_American_Staffordshire_Terrier.jpg
+  6. Appenzeller Sennenhund              → 006_Appenzeller.jpg
+  7. Australian Terrier                  → 007_Australian_Terrier.jpg
+  8. Basenji                             → 008_Basenji.jpg
+  9. Basset Hound                        → 009_Basset.jpg
+ 10. Beagle                              → 010_Beagle.jpg
+ 11. Bedlington Terrier                  → 011_Bedlington_Terrier.jpg
+ 12. Bernese Mountain Dog                → 012_Bernese_Mountain_Dog.jpg
+ 13. Blenheim Spaniel                    → 013_Blenheim_Spaniel.jpg
+ 14. Bloodhound                          → 014_Bloodhound.jpg
+ 15. Bluetick Coonhound                  → 015_Bluetick.jpg
+ 16. Border Collie                       → 016_Border_Collie.jpg
+ 17. Border Terrier                      → 017_Border_Terrier.jpg
+ 18. Borzoi                              → 018_Borzoi.jpg
+ 19. Boston Terrier                      → 019_Boston_Bull.jpg
+ 20. Bouvier des Flandres                → 020_Bouvier_Des_Flandres.jpg
+ 21. Boxer                               → 021_Boxer.jpg
+ 22. Brabancon Griffon                   → 022_Brabancon_Griffon.jpg
+ 23. Briard                              → 023_Briard.jpg
+ 24. Brittany Spaniel                    → 024_Brittany_Spaniel.jpg
+ 25. Bull Mastiff                        → 025_Bull_Mastiff.jpg
+ 26. Cairn Terrier                       → 026_Cairn.jpg
+ 27. Cardigan Welsh Corgi                → 027_Cardigan.jpg
+ 28. Chesapeake Bay Retriever            → 028_Chesapeake_Bay_Retriever.jpg
+ 29. Chihuahua                           → 029_Chihuahua.jpg
+ 30. Chow Chow                           → 030_Chow.jpg
+ 31. Clumber Spaniel                     → 031_Clumber.jpg
+ 32. Cocker Spaniel                      → 032_Cocker_Spaniel.jpg
+ 33. Collie                              → 033_Collie.jpg
+ 34. Dandie Dinmont Terrier              → 034_Dandie_Dinmont.jpg
+ 35. Dhole                               → 035_Dhole.jpg
+ 36. Dingo                               → 036_Dingo.jpg
+ 37. Doberman Pinscher                   → 037_Doberman.jpg
+ 38. English Foxhound                    → 038_English_Foxhound.jpg
+ 39. English Setter                      → 039_English_Setter.jpg
+ 40. English Springer Spaniel            → 040_English_Springer.jpg
+ 41. Entlebucher Mountain Dog            → 041_Entlebucher.jpg
+ 42. Eskimo Dog                          → 042_Eskimo_Dog.jpg
+ 43. French Bulldog                      → 043_French_Bulldog.jpg
+ 44. German Shepherd                     → 044_German_Shepherd.jpg
+ 45. German Shorthaired Pointer          → 045_German_short-haired_pointer.jpg
+ 46. Giant Schnauzer                     → 046_Giant_Schnauzer.jpg
+ 47. Golden Retriever                    → 047_Golden_Retriever.jpg
+ 48. Gordon Setter                       → 048_Gordon_Setter.jpg
+ 49. Great Dane                          → 049_Great_Dane.jpg
+ 50. Great Pyrenees                      → 050_Great_Pyrenees.jpg
+ 51. Greater Swiss Mountain Dog          → 051_Greater_Swiss_Mountain_Dog.jpg
+ 52. Groenendael                         → 052_Groenendael.jpg
+ 53. Ibizan Hound                        → 053_Ibizan_Hound.jpg
+ 54. Irish Setter                        → 054_Irish_Setter.jpg
+ 55. Irish Terrier                       → 055_Irish_Terrier.jpg
+ 56. Irish Water Spaniel                 → 056_Irish_Water_Spaniel.jpg
+ 57. Irish Wolfhound                     → 057_Irish_Wolfhound.jpg
+ 58. Italian Greyhound                   → 058_Italian_Greyhound.jpg
+ 59. Japanese Chin                       → 059_Japanese_Spaniel.jpg
+ 60. Keeshond                            → 060_Keeshond.jpg
+ 61. Australian Kelpie                   → 061_Kelpie.jpg
+ 62. Kerry Blue Terrier                  → 062_Kerry_Blue_Terrier.jpg
+ 63. Komondor                            → 063_Komondor.jpg
+ 64. Kuvasz                              → 064_Kuvasz.jpg
+ 65. Labrador Retriever                  → 065_Labrador_Retriever.jpg
+ 66. Lakeland Terrier                    → 066_Lakeland_Terrier.jpg
+ 67. Leonberger                          → 067_Leonberg.jpg
+ 68. Lhasa Apso                          → 068_Lhasa.jpg
+ 69. Alaskan Malamute                    → 069_Malamute.jpg
+ 70. Belgian Malinois                    → 070_Malinois.jpg
+ 71. Maltese                             → 071_Maltese_Dog.jpg
+ 72. Xoloitzcuintli                      → 072_Mexican_Hairless.jpg
+ 73. Miniature Pinscher                  → 073_Miniature_Pinscher.jpg
+ 74. Miniature Poodle                    → 074_Miniature_Poodle.jpg
+ 75. Miniature Schnauzer                 → 075_Miniature_Schnauzer.jpg
+ 76. Newfoundland                        → 076_Newfoundland.jpg
+ 77. Norfolk Terrier                     → 077_Norfolk_Terrier.jpg
+ 78. Norwegian Elkhound                  → 078_Norwegian_Elkhound.jpg
+ 79. Norwich Terrier                     → 079_Norwich_Terrier.jpg
+ 80. Old English Sheepdog                → 080_Old_English_Sheepdog.jpg
+ 81. Otterhound                          → 081_Otterhound.jpg
+ 82. Papillon                            → 082_Papillon.jpg
+ 83. Pekingese                           → 083_Pekinese.jpg
+ 84. Pembroke Welsh Corgi                → 084_Pembroke.jpg
+ 85. Pomeranian                          → 085_Pomeranian.jpg
+ 86. Pug                                 → 086_Pug.jpg
+ 87. Redbone Coonhound                   → 087_Redbone.jpg
+ 88. Rhodesian Ridgeback                 → 088_Rhodesian_Ridgeback.jpg
+ 89. Rottweiler                          → 089_Rottweiler.jpg
+ 90. Saint Bernard                       → 090_Saint_Bernard.jpg
+ 91. Saluki                              → 091_Saluki.jpg
+ 92. Samoyed                             → 092_Samoyed.jpg
+ 93. Schipperke                          → 093_Schipperke.jpg
+ 94. Scottish Terrier                    → 094_Scotch_Terrier.jpg
+ 95. Scottish Deerhound                  → 095_Scottish_Deerhound.jpg
+ 96. Sealyham Terrier                    → 096_Sealyham_Terrier.jpg
+ 97. Shetland Sheepdog                   → 097_Shetland_Sheepdog.jpg
+ 98. Shih Tzu                            → 098_Shih-Tzu.jpg
+ 99. Siberian Husky                      → 099_Siberian_Husky.jpg
+100. Silky Terrier                       → 100_Silky_Terrier.jpg
+101. Staffordshire Bull Terrier          → 101_Staffordshire_Bullterrier.jpg
+102. Standard Poodle                     → 102_Standard_Poodle.jpg
+103. Standard Schnauzer                  → 103_Standard_Schnauzer.jpg
+104. Sussex Spaniel                      → 104_Sussex_Spaniel.jpg
+105. Tibetan Mastiff                     → 105_Tibetan_Mastiff.jpg
+106. Tibetan Terrier                     → 106_Tibetan_Terrier.jpg
+107. Toy Poodle                          → 107_Toy_Poodle.jpg
+108. Toy Terrier                         → 108_Toy_Terrier.jpg
+109. Vizsla                              → 109_Vizsla.jpg
+110. Treeing Walker Coonhound            → 110_Walker_Hound.jpg
+111. Weimaraner                          → 111_Weimaraner.jpg
+112. Welsh Springer Spaniel              → 112_Welsh_Springer_Spaniel.jpg
+113. West Highland White Terrier         → 113_West_Highland_White_Terrier.jpg
+114. Whippet                             → 114_Whippet.jpg
+115. Yorkshire Terrier                   → 115_Yorkshire_Terrier.jpg
+116. Black and Tan Coonhound             → 116_black-and-tan_coonhound.jpg
+117. Curly-Coated Retriever              → 117_curly-coated_retriever.jpg
+118. Flat-Coated Retriever               → 118_flat-coated_retriever.jpg
+119. Soft-Coated Wheaten Terrier         → 119_soft-coated_wheaten_terrier.jpg
+120. Wire Fox Terrier                    → 120_wire-haired_fox_terrier.jpg
