@@ -68,7 +68,7 @@ export default function BreedDetailModal({ breed, onClose }) {
             <div className="text-sm text-gray-600 flex flex-col mt-0.5">
               {breed.breed_group && (
                 <span>
-                  <span className="font-semibold">Breed:</span>{" "}
+                  <span className="font-semibold">Breed Group:</span>{" "}
                   {breed.breed_group}
                 </span>
               )}

@@ -33,7 +33,7 @@ function EmotionAgeBadges({ emotion, age, light = false }) {
 
   return (
     <div className="flex gap-3">
-      <Badge title="Dog's Emotion:" label={emotion?.class_name} confidence={emotion?.confidence} />
+      <Badge title="Detected Emotion:" label={emotion?.class_name} confidence={emotion?.confidence} />
       <Badge title="Estimated Age:" label={age?.class_name} confidence={age?.confidence} />
     </div>
   );

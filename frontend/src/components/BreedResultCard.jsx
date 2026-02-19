@@ -55,8 +55,8 @@ export default function BreedResultCard({ breed, rank, onTap }) {
         <div className="font-bold text-base truncate">{breed.display_name ?? breed.class_name}</div>
         {db && (
           <div className="text-xs text-gray-400 mt-0.5">
-            {db.breed_group && <span>{db.breed_group}</span>}
-            {db.origin && <span>{db.origin}</span>}
+            {db.breed_group && <span><span>Breed Group: </span>{db.breed_group} | </span>}
+            {db.origin && <span><span>Origin: </span>{db.origin}</span>}
           </div>
         )}
         {temperamentText && <div className="text-xs text-gray-500 truncate mt-0.5">{temperamentText}</div>}
