@@ -9,13 +9,13 @@ import tensorflow as tf
 
 # ========== Model Loading ==========
 MODEL_DIR = "models/trained_model"
-LABELS_FILE = "models/class_names.json" 
+LABELS_FILE = "models/class_labels.json" 
 
 print("Loading model...")
-model = tf.keras.models.load_model(os.path.join(MODEL_DIR, "best_finetuned.h5"))
+model = tf.keras.models.load_model(os.path.join(MODEL_DIR, "dog_breed_model.h5"))
 with open(LABELS_FILE, "r", encoding="utf-8") as f:
     class_info = json.load(f)  # ← CHANGED: Load full class info
-    class_names = [breed["display_name"] for breed in class_info]  # ← CHANGED: Extract display names
+    class_names = [breed["display_name"] for breed in class_info]  
 print(f"Model loaded. {len(class_names)} breeds supported.")
 
 # ========== Helper Functions ==========

@@ -8,7 +8,6 @@ const authRoutes = require("./routes/auth");
 const scanRoutes = require("./routes/scans");
 const breedsRoutes = require("./routes/breeds.routes");
 
-
 const app = express();
 
 // ============================================
@@ -19,7 +18,7 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:3000", // React web app (old port)
+      "http://localhost:5000", // React web app (old port)
       "http://localhost:5173", // React web app (Vite dev port)
       "http://localhost:5174", // React web app (Vite dev port)
       // Android emulator can access localhost via 10.0.2.2

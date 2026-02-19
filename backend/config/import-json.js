@@ -75,3 +75,5 @@ async function importData() {
 }
 
 importData();
+
+// copy-paste to run ============================================ node import-json.js

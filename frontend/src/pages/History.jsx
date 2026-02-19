@@ -626,7 +626,7 @@ const HistoryPage = () => {
                 : "Start by uploading your first dog image"}
             </p>
             <button
-              onClick={() => navigate("/scan")}
+              onClick={() => navigate("/dashboard?scan=1")}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-medium"
             >
               Start New Scan

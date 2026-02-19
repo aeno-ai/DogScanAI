@@ -1,0 +1,86 @@
+{
+  "Dermatitis": {
+    "name": "Dermatitis (Skin Inflammation)",
+    "description": "General inflammation of the skin that can be caused by allergies (food, environmental), irritants (chemicals, plants), infections, or parasites. Very common in dogs.",
+    "severity": "Mild to Moderate",
+    "treatment": "Depends on underlying cause. May include antihistamines, steroids, antibiotics, or elimination diets. Identify and avoid triggers when possible.",
+    "symptoms": [
+      "Redness",
+      "Itching",
+      "Rashes",
+      "Dry or flaky skin",
+      "Hair loss",
+      "Ear infections"
+    ],
+    "contagious": false,
+    "urgency": "Low to Moderate - Monitor and see vet if worsening"
+  },
+  "Fungal_infections": {
+    "name": "Fungal Skin Infections",
+    "description": "Fungal infections of the skin, most commonly ringworm (dermatophytosis) or yeast infections (Malassezia). Thrive in warm, moist environments.",
+    "severity": "Moderate",
+    "treatment": "Antifungal medications (topical or oral), medicated shampoos. Clean and disinfect environment. Ringworm is contagious to humans and other animals.",
+    "symptoms": [
+      "Circular patches of hair loss",
+      "Crusty or scaly skin",
+      "Greasy or smelly skin (yeast)",
+      "Red, inflamed areas"
+    ],
+    "contagious": true,
+    "urgency": "Moderate - See vet within 1 week, isolate from other pets"
+  },
+  "Healthy": {
+    "name": "Healthy Skin",
+    "description": "No signs of skin disease detected. The skin appears normal with no lesions, redness, hair loss, or other abnormalities.",
+    "severity": "None",
+    "treatment": "Continue regular grooming, balanced diet, and routine veterinary checkups. Monitor for any changes in skin condition.",
+    "symptoms": [],
+    "contagious": false,
+    "urgency": "None - Routine care"
+  },
+  "Hypersensitivity": {
+    "name": "Hypersensitivity (Allergic Reaction)",
+    "description": "Allergic reaction causing skin inflammation. Can be triggered by fleas (flea allergy dermatitis), food allergens, or environmental allergens (pollen, dust mites, mold).",
+    "severity": "Mild to Moderate",
+    "treatment": "Identify and remove allergen when possible. Treatments include antihistamines, steroids, immunotherapy, hypoallergenic diets, and flea prevention.",
+    "symptoms": [
+      "Intense itching",
+      "Red, inflamed skin",
+      "Hot spots",
+      "Ear infections",
+      "Paw licking",
+      "Face rubbing"
+    ],
+    "contagious": false,
+    "urgency": "Low to Moderate - See vet if persistent or severe"
+  },
+  "demodicosis": {
+    "name": "Demodicosis (Demodectic Mange)",
+    "description": "Caused by Demodex mites that live in hair follicles. Can be localized (affecting small areas) or generalized (affecting large areas of the body). Common in puppies and dogs with weakened immune systems.",
+    "severity": "Moderate to Severe",
+    "treatment": "Requires veterinary diagnosis and treatment with antiparasitic medications (ivermectin, milbemycin, or moxidectin). Treatment may take several months.",
+    "symptoms": [
+      "Hair loss (especially around eyes, mouth, and front legs)",
+      "Red, scaly skin",
+      "Crusty patches",
+      "Secondary bacterial infections"
+    ],
+    "contagious": false,
+    "urgency": "Moderate - See vet within 1-2 weeks"
+  },
+  "ringworm": {
+    "name": "Ringworm (Dermatophytosis)",
+    "description": "Highly contagious fungal infection that affects the skin, hair, and nails. Despite the name, it's not caused by a worm but by dermatophyte fungi. Can spread to humans and other animals.",
+    "severity": "Moderate",
+    "treatment": "Antifungal medications (griseofulvin, itraconazole), medicated shampoos, environmental decontamination. Isolate infected animals. Treatment typically lasts 6-12 weeks.",
+    "symptoms": [
+      "Circular lesions with raised edges",
+      "Hair loss in rings",
+      "Crusty or scaly patches",
+      "Broken hairs",
+      "Mild itching"
+    ],
+    "contagious": true,
+    "urgency": "Moderate - See vet within 1 week, quarantine immediately"
+  }
+}

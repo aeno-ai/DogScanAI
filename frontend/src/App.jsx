@@ -13,6 +13,7 @@ import DashboardPage from "./pages/Dashboard";
 import DogLibrary from "./pages/DogLibrary"
 import HistoryPage from "./pages/History";
 import ProfilePage from "./pages/ProfilePage";
+import Community from "./pages/Community";
 
 function App() {
   return (
@@ -35,6 +36,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/scan" element={<Navigate to="/dashboard?scan=1" replace />} />
+          <Route path="/scanpage" element={<Navigate to="/dashboard?scan=1" replace />} />
           <Route
             path="/doglibrary"
             element={
@@ -59,6 +62,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/community"
+            element={
+              <ProtectedRoute>
+                <Community />
+              </ProtectedRoute>
+            }
+          />
+
 
           {/* Catch-all redirect */}
           <Route path="*" element={<NotFound />} />
