@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import TopNav from "../components/ui/TopNav";
+import { useToast } from "../components/Toast";
+import api from "../services/api";
+import { buildBreedImagePath } from "../utils/breedImage";
 import {
   Camera,
   Dna,
@@ -12,16 +15,78 @@ import {
   Zap,
   UserCircle2,
   PawPrint,
-  ArrowRight,
   Lightbulb,
+  Loader2,
 } from "lucide-react";
 import { ScanWorkspace } from "./ScanPage";
 
+function normalizeTemperament(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value !== "string") return [];
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    return trimmed
+      .slice(1, -1)
+      .split(",")
+      .map((item) => item.replace(/^"|"$/g, "").trim())
+      .filter(Boolean);
+  }
+  return trimmed
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function mapRecentScan(scan) {
+  const predictions = Array.isArray(scan?.predictions)
+    ? scan.predictions.slice().sort((a, b) => Number(a.rank) - Number(b.rank))
+    : [];
+  const totalConfidence = predictions.reduce(
+    (sum, pred) => sum + Number(pred?.confidence ?? 0),
+    0
+  );
+
+  const topPrediction = predictions[0] || null;
+  const breedName =
+    topPrediction?.display_name || topPrediction?.class_name || "Unknown";
+  const className = topPrediction?.class_name || "";
+  const breedId = topPrediction?.breed_id ?? null;
+
+  const topBreedImage =
+    breedId && className ? buildBreedImagePath(breedId, className) : "";
+  const uploadImage = scan?.image_url || "";
+  const confidence = Number(
+    topPrediction?.mix_share != null
+      ? topPrediction.mix_share
+      : totalConfidence > 0
+      ? (Number(topPrediction?.confidence ?? 0) / totalConfidence) * 100
+      : 0
+  );
+  const origin = topPrediction?.breed_info?.origin || "Unknown";
+  const temperament = normalizeTemperament(topPrediction?.breed_info?.temperament);
+
+  return {
+    id: scan?.id,
+    scannedAt: scan?.scanned_at,
+    uploadImage,
+    breedName,
+    confidence,
+    origin,
+    temperament,
+    topBreedImage,
+  };
+}
+
 const DashboardPage = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showScanModal, setShowScanModal] = useState(false);
+  const [recentScans, setRecentScans] = useState([]);
+  const [loadingRecentScans, setLoadingRecentScans] = useState(true);
+  const loadErrorShownRef = useRef(false);
 
   const openScanModal = () => setShowScanModal(true);
 
@@ -49,10 +114,56 @@ const DashboardPage = () => {
     };
   }, [showScanModal]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchRecentScans = async () => {
+      if (!token) {
+        if (mounted) {
+          setRecentScans([]);
+          setLoadingRecentScans(false);
+        }
+        return;
+      }
+
+      setLoadingRecentScans(true);
+      try {
+        const { data } = await api.get("/api/scans", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!mounted) return;
+        const mapped = Array.isArray(data) ? data.map(mapRecentScan) : [];
+        setRecentScans(mapped);
+        loadErrorShownRef.current = false;
+      } catch {
+        if (!mounted) return;
+        setRecentScans([]);
+        if (!loadErrorShownRef.current) {
+          loadErrorShownRef.current = true;
+          toast.error("Failed to load dashboard history preview.");
+        }
+      } finally {
+        if (mounted) setLoadingRecentScans(false);
+      }
+    };
+
+    fetchRecentScans();
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
+
+  const scansThisWeek = recentScans.filter((scan) => {
+    if (!scan?.scannedAt) return false;
+    const date = new Date(scan.scannedAt);
+    const diffDays = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= 7;
+  }).length;
+
   const stats = [
-    { label: "Total Scans", value: "0", icon: Camera },
+    { label: "Total Scans", value: String(recentScans.length), icon: Camera },
     { label: "Breeds", value: "121", icon: Dna },
-    { label: "This Week", value: "0", icon: Calendar },
+    { label: "This Week", value: String(scansThisWeek), icon: Calendar },
   ];
 
   const quickActions = [
@@ -192,29 +303,121 @@ const DashboardPage = () => {
               <PawPrint className="w-5 h-5 text-indigo-600" />
               Recent Scans
             </h2>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1">
-              View All
-              <ArrowRight className="w-4 h-4" />
-            </button>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="text-center py-16 px-4">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
-                <ScanLine className="w-9 h-9 text-gray-500" />
+            {loadingRecentScans ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No scans yet!</h3>
-              <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-                Upload your first dog image to get started with breed identification
-              </p>
-              <button
-                onClick={openScanModal}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium"
-              >
-                <Camera className="w-5 h-5" />
-                Start Your First Scan
-              </button>
-            </div>
+            ) : recentScans.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {recentScans.slice(0, 2).map((scan) => (
+                  <div key={scan.id} className="p-4 sm:p-5">
+                    <div className="flex gap-4 items-start">
+                      <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                        {scan.uploadImage ? (
+                          <img
+                            src={scan.uploadImage}
+                            alt="Uploaded scan"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="w-6 h-6 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs uppercase tracking-wide text-gray-500">
+                              Top Prediction
+                            </p>
+                            <h3 className="text-base font-semibold text-gray-900 truncate">
+                              {scan.breedName}
+                            </h3>
+                          </div>
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                            {scan.confidence.toFixed(1)}%
+                          </span>
+                        </div>
+
+                        <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                          <Calendar className="w-4 h-4" />
+                          <span>
+                            {scan.scannedAt
+                              ? new Date(scan.scannedAt).toLocaleString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "Unknown date"}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 text-sm text-gray-600">
+                          <span className="font-medium text-gray-700">Origin:</span>{" "}
+                          {scan.origin}
+                        </div>
+
+                        {scan.temperament.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {scan.temperament.slice(0, 2).map((temp) => (
+                              <span
+                                key={temp}
+                                className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700"
+                              >
+                                {temp}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {scan.topBreedImage && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <span className="text-xs text-gray-500">Breed reference:</span>
+                            <img
+                              src={scan.topBreedImage}
+                              alt={scan.breedName}
+                              className="w-10 h-10 rounded-md object-cover border border-gray-200"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="px-4 sm:px-5 py-3 text-center border-t border-gray-100">
+                  <button
+                    onClick={() => navigate("/history")}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer"
+                  >
+                    View more in History
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-16 px-4">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
+                  <ScanLine className="w-9 h-9 text-gray-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No scans yet!</h3>
+                <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+                  Upload your first dog image to get started with breed identification
+                </p>
+                <button
+                  onClick={openScanModal}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium"
+                >
+                  <Camera className="w-5 h-5" />
+                  Start Your First Scan
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

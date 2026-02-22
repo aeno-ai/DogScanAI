@@ -20,7 +20,10 @@ function renderTemperament(value) {
 
 export default function BreedResultCard({ breed, rank, onTap }) {
   const db = breed.db_info;
-  const confidence = breed.confidence ?? 0;
+  const confidence = Number(breed.confidence ?? 0);
+  const displayConfidence = Number(
+    breed.mix_share != null ? breed.mix_share : confidence
+  );
   const rankColor = RANK_COLORS[rank - 1] ?? "#6b7280";
   const imagePath = buildBreedImagePath(breed.breed_id, breed.class_name);
   const temperamentText = renderTemperament(db?.temperament);
@@ -66,12 +69,12 @@ export default function BreedResultCard({ breed, rank, onTap }) {
             <div
               className="h-full rounded-full"
               style={{
-                width: `${confidence}%`,
+                width: `${displayConfidence}%`,
                 background: "linear-gradient(90deg, #6366f1, #8b5cf6)",
               }}
             />
           </div>
-          <span className="text-xs font-medium text-blue-600 shrink-0">{confidence}%</span>
+          <span className="text-xs font-medium text-blue-600 shrink-0">{displayConfidence.toFixed(1)}%</span>
         </div>
       </div>
 

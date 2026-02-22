@@ -3,7 +3,6 @@ import React, {
   useState,
   useEffect,
   useContext,
-  Children,
 } from "react";
 import axios from "axios";
 
@@ -14,6 +13,7 @@ axios.defaults.withCredentials = true; // allows cookies to be sent daw
 // ============== CREATE CONTEXT ==================
 
 const AuthContext = createContext(null);
+const TOKEN_STORAGE_KEY = "dogscan_auth_token";
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -30,6 +30,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [created_at, setCreatedAt] = useState(null);
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem(TOKEN_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     checkAuth();
@@ -43,11 +50,29 @@ export const AuthProvider = ({ children }) => {
 const checkAuth = async () => {
   setLoading(true); 
   try {
-    const response = await axios.get("/api/auth/me");
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+    const response = await axios.get("/api/auth/me", headers ? { headers } : undefined);
     setUser(response.data?.user ?? response.data);
+    if (response.data?.token) {
+      setToken(response.data.token);
+      try {
+        localStorage.setItem(TOKEN_STORAGE_KEY, response.data.token);
+      } catch {
+        // ignore storage errors
+      }
+    }
     setError(null);
   } catch (err) {
     setUser(null);
+    setError(err);
+    if (err?.response?.status === 401) {
+      setToken(null);
+      try {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+      } catch {
+        // ignore storage errors
+      }
+    }
   } finally {
     setLoading(false); // done checking
   }
@@ -77,6 +102,14 @@ const checkAuth = async () => {
       });
 
       setUser(response.data.user);
+      if (response.data?.token) {
+        setToken(response.data.token);
+        try {
+          localStorage.setItem(TOKEN_STORAGE_KEY, response.data.token);
+        } catch {
+          // ignore storage errors
+        }
+      }
 
       return { success: true };
     } catch (error) {
@@ -114,6 +147,14 @@ const checkAuth = async () => {
       // Success! Update user state
       setUser(response.data.user);
       setCreatedAt(response.data.created_at); // set kung kailan siya na create
+      if (response.data?.token) {
+        setToken(response.data.token);
+        try {
+          localStorage.setItem(TOKEN_STORAGE_KEY, response.data.token);
+        } catch {
+          // ignore storage errors
+        }
+      }
 
       return { success: true };
     } catch (error) {
@@ -142,11 +183,23 @@ const checkAuth = async () => {
 
       // Clear user state
       setUser(null);
+      setToken(null);
       setError(null);
+      try {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+      } catch {
+        // ignore storage errors
+      }
     } catch (error) {
       console.error("Logout error:", error);
       // Even if API call fails, clear local state
       setUser(null);
+      setToken(null);
+      try {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+      } catch {
+        // ignore storage errors
+      }
     }
   };
 
@@ -162,7 +215,8 @@ const checkAuth = async () => {
     login, // Function to login
     logout, // Function to logout
     isAuthenticated: !!user, // Boolean: is user logged in?
-    created_at // kung kelan ginawa
+    created_at, // kung kelan ginawa
+    token, // JWT token for Authorization header
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

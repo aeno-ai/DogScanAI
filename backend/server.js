@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 require('dotenv').config();
 
 // Import routes
@@ -34,6 +35,7 @@ app.use(
 app.use(express.json()); // Parse JSON bodies
 app.use(cookieParser()); // Parse cookies (for web)
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
 // ============================================

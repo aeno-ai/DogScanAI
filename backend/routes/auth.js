@@ -197,7 +197,7 @@ router.get("/me", async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
 
-    res.json({ user: result.rows[0] });
+    res.json({ user: result.rows[0], token });
   } catch (error) {
     console.error("Auth verification error:", error);
     res.status(401).json({ error: "Invalid or expired token" });

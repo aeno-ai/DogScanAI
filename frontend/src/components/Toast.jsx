@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useMemo } from "react";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
 
 const ToastContext = createContext(null);
@@ -42,12 +42,15 @@ export const ToastProvider = ({ children }) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const toast = {
-    success: (message, duration) => addToast(message, "success", duration),
-    error: (message, duration) => addToast(message, "error", duration),
-    info: (message, duration) => addToast(message, "info", duration),
-    warning: (message, duration) => addToast(message, "warning", duration),
-  };
+  const toast = useMemo(
+    () => ({
+      success: (message, duration) => addToast(message, "success", duration),
+      error: (message, duration) => addToast(message, "error", duration),
+      info: (message, duration) => addToast(message, "info", duration),
+      warning: (message, duration) => addToast(message, "warning", duration),
+    }),
+    [addToast]
+  );
 
   return (
     <ToastContext.Provider value={toast}>

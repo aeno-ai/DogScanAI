@@ -7,7 +7,9 @@ const SEVERITY_COLOR = {
 };
 
 export default function DiseaseResultCard({ disease, rank }) {
-  const confidence = disease.confidence ?? 0;
+  const confidence = Number(
+    disease?.mix_share != null ? disease.mix_share : disease?.confidence ?? 0
+  );
   const sevColor = SEVERITY_COLOR[disease.severity?.toLowerCase()] ?? "#6b7280";
 
   return (
@@ -40,7 +42,7 @@ export default function DiseaseResultCard({ disease, rank }) {
                 }}
               />
             </div>
-            <span className="text-xs font-medium text-amber-600 shrink-0">{confidence}%</span>
+            <span className="text-xs font-medium text-amber-600 shrink-0">{confidence.toFixed(1)}%</span>
           </div>
 
           {/* Description */}

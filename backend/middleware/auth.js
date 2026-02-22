@@ -13,8 +13,11 @@ const authenticateToken = (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Add user info to request
-    req.user = decoded;
+    // Add user info to request (keep both keys for compatibility)
+    req.user = {
+      ...decoded,
+      id: decoded.userId ?? decoded.id,
+    };
 
     // Continue to route handler
     next();
