@@ -690,7 +690,7 @@ const DogLibrary = () => {
             <img
               src={imageViewer.image}
               alt={imageViewer.name}
-              className="w-full h-full object-contain rounded-lg shadow-2xl"
+              className="w-full h-full object-fill rounded-lg shadow-2xl"
             />
           </div>
 
