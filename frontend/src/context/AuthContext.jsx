@@ -3,12 +3,10 @@ import React, {
   useState,
   useEffect,
   useContext,
+  useCallback,
 } from "react";
-import axios from "axios";
+import api from "../services/api";
 
-// ============== CONFIGURATION ====================
-axios.defaults.baseURL = "http://localhost:5000";
-axios.defaults.withCredentials = true; // allows cookies to be sent daw
 
 // ============== CREATE CONTEXT ==================
 
@@ -38,45 +36,47 @@ export const AuthProvider = ({ children }) => {
     }
   });
 
+  const refreshUser = useCallback(
+    async ({ withLoading = false } = {}) => {
+      if (withLoading) setLoading(true);
+      try {
+        const authToken = localStorage.getItem(TOKEN_STORAGE_KEY) || token;
+        const headers = authToken ? { Authorization: `Bearer ${authToken}` } : undefined;
+        const response = await api.get("/api/auth/me", headers ? { headers } : undefined);
+
+        setUser(response.data?.user ?? response.data);
+        if (response.data?.token) {
+          setToken(response.data.token);
+          try {
+            localStorage.setItem(TOKEN_STORAGE_KEY, response.data.token);
+          } catch {
+            // ignore storage errors
+          }
+        }
+        setError(null);
+        return { success: true, user: response.data?.user ?? response.data };
+      } catch (err) {
+        setUser(null);
+        setError(err);
+        if (err?.response?.status === 401 || err?.response?.status === 403) {
+          setToken(null);
+          try {
+            localStorage.removeItem(TOKEN_STORAGE_KEY);
+          } catch {
+            // ignore storage errors
+          }
+        }
+        return { success: false, error: err };
+      } finally {
+        if (withLoading) setLoading(false);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
-    checkAuth();
+    refreshUser({ withLoading: true });
   }, []);
-
-  /**
-   * Check if user is already logged in
-   * Called when app first loads
-   */
-
-const checkAuth = async () => {
-  setLoading(true); 
-  try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-    const response = await axios.get("/api/auth/me", headers ? { headers } : undefined);
-    setUser(response.data?.user ?? response.data);
-    if (response.data?.token) {
-      setToken(response.data.token);
-      try {
-        localStorage.setItem(TOKEN_STORAGE_KEY, response.data.token);
-      } catch {
-        // ignore storage errors
-      }
-    }
-    setError(null);
-  } catch (err) {
-    setUser(null);
-    setError(err);
-    if (err?.response?.status === 401) {
-      setToken(null);
-      try {
-        localStorage.removeItem(TOKEN_STORAGE_KEY);
-      } catch {
-        // ignore storage errors
-      }
-    }
-  } finally {
-    setLoading(false); // done checking
-  }
-};
 
 
   // =================== REGISTER ==================
@@ -95,7 +95,7 @@ const checkAuth = async () => {
       setError(null);
 
       // POST request sa backend
-      const response = await axios.post("/api/auth/register", {
+      const response = await api.post("/api/auth/register", {
         email,
         password,
         username,
@@ -138,14 +138,15 @@ const checkAuth = async () => {
       setError(null);
 
       // Make POST request to backend
-      const response = await axios.post("/api/auth/login", {
+      const response = await api.post("/api/auth/login", {
         email,
         password,
         created_at
       });
 
       // Success! Update user state
-      setUser(response.data.user);
+      const nextUser = response.data.user;
+      setUser(nextUser);
       setCreatedAt(response.data.created_at); // set kung kailan siya na create
       if (response.data?.token) {
         setToken(response.data.token);
@@ -156,15 +157,18 @@ const checkAuth = async () => {
         }
       }
 
-      return { success: true };
+      return { success: true, user: nextUser };
     } catch (error) {
-      // Extract error message from response
-      const errorMessage = error.response?.data?.error || "Login failed";
+      const payload = error.response?.data || {};
+      const errorMessage = payload.error || "Login failed";
       setError(errorMessage);
 
       return {
         success: false,
         error: errorMessage,
+        code: payload.code || null,
+        banned_until: payload.banned_until || null,
+        ban_reason: payload.ban_reason || null,
       };
     }
   };
@@ -179,7 +183,7 @@ const checkAuth = async () => {
   const logout = async () => {
     try {
       // Call backend logout endpoint
-      await axios.post("/api/auth/logout");
+      await api.post("/api/auth/logout");
 
       // Clear user state
       setUser(null);
@@ -214,6 +218,7 @@ const checkAuth = async () => {
     register, // Function to register
     login, // Function to login
     logout, // Function to logout
+    refreshUser, // Re-fetch authenticated user
     isAuthenticated: !!user, // Boolean: is user logged in?
     created_at, // kung kelan ginawa
     token, // JWT token for Authorization header
@@ -221,3 +226,4 @@ const checkAuth = async () => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+

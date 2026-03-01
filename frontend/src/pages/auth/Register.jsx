@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import Paw from '../../assets/foot.png'
 
 const SignUpPage = () => {
   const navigate = useNavigate();
@@ -74,17 +75,11 @@ const SignUpPage = () => {
         {/* ── LEFT PANEL ── */}
         <div className="bg-blue-600 flex flex-col items-center justify-center px-6 py-12 text-white">
           <h1 className="text-2xl font-extrabold tracking-wide">
-              DOGSCAN<span className="text-black">AI</span>
+              DOGSCAN AI
             </h1>
           <div className="w-44 h-44 rounded-full bg-white flex items-center justify-center shadow-lg">
             {/* Paw / mascot placeholder — swap with your asset if needed */}
-            <svg className="w-20 h-20 text-blue-600" fill="currentColor" viewBox="0 0 64 64">
-              <ellipse cx="16" cy="14" rx="6" ry="8" />
-              <ellipse cx="32" cy="10" rx="6" ry="8" />
-              <ellipse cx="48" cy="14" rx="6" ry="8" />
-              <ellipse cx="8"  cy="28" rx="5" ry="7" />
-              <path d="M32 22c-12 0-20 8-16 20 2 6 8 12 16 12s14-6 16-12c4-12-4-20-16-20z" />
-            </svg>
+            <img src={Paw} alt="foot paw" />
           </div>
         </div>
 

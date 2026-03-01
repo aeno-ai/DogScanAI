@@ -19,8 +19,10 @@ import { buildBreedImagePath } from "../utils/breedImage";
 const FILTER_STATUSES = [
   { value: "all", label: "All Scans" },
   { value: "completed", label: "Completed" },
-  { value: "pending", label: "Pending" },
   { value: "low_confidence", label: "Low Confidence" },
+  { value: "training_pending", label: "Training Pending" },
+  { value: "training_approved", label: "Training Approved" },
+  { value: "training_rejected", label: "Training Rejected" },
 ];
 
 const SORT_OPTIONS = [
@@ -85,6 +87,19 @@ function formatDate(dateString) {
   });
 }
 
+function getTrainingBadge(status) {
+  switch (status) {
+    case "pending":
+      return { label: "Training Pending", className: "bg-amber-100 text-amber-700" };
+    case "approved":
+      return { label: "Training Approved", className: "bg-green-100 text-green-700" };
+    case "rejected":
+      return { label: "Training Rejected", className: "bg-red-100 text-red-700" };
+    default:
+      return { label: "Not Shared", className: "bg-slate-100 text-slate-600" };
+  }
+}
+
 function mapApiScanToUi(scan) {
   const apiPredictions = Array.isArray(scan?.predictions) ? scan.predictions : [];
 
@@ -138,6 +153,9 @@ function mapApiScanToUi(scan) {
     id: scan?.id,
     scan_date: scan?.scanned_at,
     status: top1Confidence < 40 ? "low_confidence" : "completed",
+    training_status: scan?.training_status || "not_shared",
+    training_rejection_reason: scan?.training_rejection_reason || null,
+    training_reviewed_at: scan?.training_reviewed_at || null,
     images,
     predictions: predictionsWithShare,
     created_at: scan?.scanned_at,
@@ -189,6 +207,9 @@ const HistoryPage = () => {
     const filtered = scans.filter((scan) => {
       if (filterStatus === "all") return true;
       if (filterStatus === "low_confidence") return getTop1Confidence(scan) < 40;
+      if (filterStatus === "training_pending") return scan.training_status === "pending";
+      if (filterStatus === "training_approved") return scan.training_status === "approved";
+      if (filterStatus === "training_rejected") return scan.training_status === "rejected";
       return scan.status === filterStatus;
     });
 
@@ -320,6 +341,7 @@ const HistoryPage = () => {
               const topPrediction = scan.predictions[0];
               const top1Confidence = getTop1Confidence(scan);
               const badge = getConfidenceBadge(top1Confidence);
+              const trainingBadge = getTrainingBadge(scan.training_status);
 
               return (
                 <div key={scan.id} className="bg-white rounded-xl shadow-sm overflow-hidden transition-shadow hover:shadow-md">
@@ -398,11 +420,16 @@ const HistoryPage = () => {
                             <Trash2 className="w-4 h-4" />
                             Delete
                           </button>
-                          <span className="ml-auto px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
+                          <span className={`ml-auto px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${trainingBadge.className}`}>
                             <CheckCircle className="w-3 h-3" />
-                            Training Approved
+                            {trainingBadge.label}
                           </span>
                         </div>
+                        {scan.training_status === "rejected" && scan.training_rejection_reason && (
+                          <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                            Rejection reason: {scan.training_rejection_reason}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

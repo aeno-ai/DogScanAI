@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { AlertTriangle, Camera, Loader2, PawPrint, Stethoscope, Upload, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import BreedResultCard from "../components/BreedResultCard";
 import DiseaseResultCard from "../components/DiseaseResultCard";
 import api from "../services/api";
@@ -13,6 +14,7 @@ const SCAN_MODES = [
     icon: PawPrint,
     description: "Identify breed, emotion and age",
     endpoint: "/api/scans/breed",
+    publicEndpoint: "/api/scans/public/breed",
   },
   {
     id: "disease",
@@ -20,6 +22,7 @@ const SCAN_MODES = [
     icon: Stethoscope,
     description: "Detect skin conditions",
     endpoint: "/api/scans/disease",
+    publicEndpoint: "/api/scans/public/disease",
   },
 ];
 
@@ -40,8 +43,9 @@ function EmotionAgeBadges({ emotion, age, light = false }) {
   );
 }
 
-export function ScanWorkspace({ inModal = false, onClose = null }) {
+export function ScanWorkspace({ inModal = false, onClose = null, publicMode = false }) {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
   const [mode, setMode] = useState("breed");
   const [preview, setPreview] = useState(null);
@@ -53,11 +57,46 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
   const [breedDetails, setBreedDetails] = useState({});
   const [loadingBreedId, setLoadingBreedId] = useState(null);
   const [historySaveState, setHistorySaveState] = useState("idle");
+  const [shareForTraining, setShareForTraining] = useState(false);
+  const [publicUsage, setPublicUsage] = useState(
+    publicMode ? { demo_limit: 5, demo_used: 0, demo_remaining: 5 } : null
+  );
   const fileInputRef = useRef();
 
   const getAuthHeaders = useCallback(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
+
+  const updatePublicUsage = useCallback((payload) => {
+    if (!publicMode) return;
+    const limit = Number(payload?.demo_limit);
+    const used = Number(payload?.demo_used);
+    const remaining = Number(payload?.demo_remaining);
+    if (!Number.isFinite(limit) || !Number.isFinite(used) || !Number.isFinite(remaining)) return;
+    setPublicUsage({
+      demo_limit: limit,
+      demo_used: Math.max(0, used),
+      demo_remaining: Math.max(0, remaining),
+    });
+  }, [publicMode]);
+
+  useEffect(() => {
+    if (!publicMode) return;
+    let mounted = true;
+
+    api.get("/api/scans/public/usage")
+      .then(({ data }) => {
+        if (!mounted) return;
+        updatePublicUsage(data);
+      })
+      .catch(() => {
+        // keep default values if usage endpoint is temporarily unavailable
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [publicMode, updatePublicUsage]);
 
   const applyFile = useCallback((f) => {
     setFile(f);
@@ -68,6 +107,7 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
     setBreedDetails({});
     setLoadingBreedId(null);
     setHistorySaveState("idle");
+    setShareForTraining(false);
   }, []);
 
   const handleReset = useCallback(() => {
@@ -79,32 +119,56 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
     setBreedDetails({});
     setLoadingBreedId(null);
     setHistorySaveState("idle");
+    setShareForTraining(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
   async function handleScan() {
-    if (!file || loading) return;
+    if (!file || loading || (publicMode && publicUsage?.demo_remaining === 0)) return;
+    if (publicMode && mode === "disease" && !token) {
+      navigate("/login?redirect=%2Fdashboard%3Fscan%3D1");
+      return;
+    }
     setLoading(true);
     setError(null);
     setResult(null);
     setHistorySaveState("idle");
+    setShareForTraining(false);
 
     try {
       const form = new FormData();
       form.append("image", file);
       const activeMode = SCAN_MODES.find((m) => m.id === mode);
-      const { data } = await api.post(activeMode.endpoint, form, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          ...getAuthHeaders(),
-        },
+      const usePublicEndpoint = publicMode && mode === "breed";
+      const endpoint = usePublicEndpoint ? activeMode.publicEndpoint : activeMode.endpoint;
+      const headers = usePublicEndpoint
+        ? { "Content-Type": "multipart/form-data" }
+        : {
+            "Content-Type": "multipart/form-data",
+            ...getAuthHeaders(),
+          };
+
+      const { data } = await api.post(endpoint, form, {
+        headers,
       });
+      updatePublicUsage(data);
       setResult(data);
       setExpandedBreedId(null);
       setBreedDetails({});
       setLoadingBreedId(null);
     } catch (err) {
+      updatePublicUsage(err?.response?.data);
+      const limitMsg =
+        err?.response?.status === 429
+          ? "Public demo limit reached. Sign up to continue scanning."
+          : null;
+      const notFoundMsg =
+        err?.response?.status === 404 && publicMode
+          ? "Public scan route not found on backend. Restart backend server."
+          : null;
       const msg =
+        limitMsg ||
+        notFoundMsg ||
         err?.response?.data?.error ||
         (err?.response?.status === 503
           ? "AI service is starting up, please try again in a moment."
@@ -131,9 +195,8 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
 
     setLoadingBreedId(breedId);
     try {
-      const { data } = await api.get(`/api/scans/breed/${breedId}`, {
-        headers: getAuthHeaders(),
-      });
+      const requestConfig = publicMode ? undefined : { headers: getAuthHeaders() };
+      const { data } = await api.get(`/api/scans/breed/${breedId}`, requestConfig);
       setBreedDetails((prev) => ({ ...prev, [breedId]: data }));
       setExpandedBreedId(breedId);
     } catch {
@@ -225,10 +288,18 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
       ? result.uploaded_image_url
       : "";
 
-    return { image_url: imageUrl, predictions };
-  }, [result]);
+    const scanType = result.scan_type === "disease" ? "disease" : "breed";
+
+    return {
+      image_url: imageUrl,
+      predictions,
+      scan_type: scanType,
+      share_for_training: scanType === "breed" ? shareForTraining : false,
+    };
+  }, [result, shareForTraining]);
 
   async function handleSaveToHistory() {
+    if (publicMode) return;
     if (historySaveState === "saving" || historySaveState === "saved") return;
 
     const payload = buildHistoryPayload();
@@ -250,6 +321,8 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
         const form = new FormData();
         form.append("image", file);
         form.append("predictions", JSON.stringify(payload.predictions));
+        form.append("scan_type", payload.scan_type);
+        form.append("share_for_training", payload.share_for_training ? "true" : "false");
 
         await api.post("/api/scans", form, {
           headers: {
@@ -273,8 +346,37 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
     }
   }
 
+  const handleContributionToggle = useCallback(() => {
+    if (result?.scan_type !== "breed") return;
+    const nextValue = !shareForTraining;
+    setShareForTraining(nextValue);
+    toast.info(
+      nextValue
+        ? "This scan will be shared for admin review after save."
+        : "This scan will not be shared."
+    );
+  }, [result?.scan_type, shareForTraining, toast]);
+
   const renderSaveButton = () => (
     <div className="mt-4">
+      {result?.scan_type === "breed" && (
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={handleContributionToggle}
+            className={`w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-semibold transition-colors border ${
+              shareForTraining
+                ? "bg-emerald-100 border-emerald-300 text-emerald-700"
+                : "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            {shareForTraining ? "Contribution: ON" : "Contribution: OFF"}
+          </button>
+          <p className={`mt-2 text-xs ${isLight ? "text-gray-600" : "text-gray-400"}`}>
+            Allow admin to review and use this scan image and breed result to improve the system.
+          </p>
+        </div>
+      )}
       <button
         onClick={handleSaveToHistory}
         disabled={historySaveState === "saving" || historySaveState === "saved"}
@@ -323,26 +425,44 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
               <button
                 key={m.id}
                 onClick={() => {
+                  if (publicMode && m.id === "disease" && !token) {
+                    navigate("/login?redirect=%2Fdashboard%3Fscan%3D1");
+                    return;
+                  }
                   setMode(m.id);
                   handleReset();
                 }}
                 className={`flex-1 py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
                   mode === m.id
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 border-indigo-500 text-white shadow-lg"
+                    ? publicMode
+                      ? "bg-blue-600 border-blue-500 text-white shadow-lg"
+                      : "bg-gradient-to-r from-blue-600 to-indigo-600 border-indigo-500 text-white shadow-lg"
                     : isLight
                       ? "bg-white border-gray-200 text-gray-600 hover:border-blue-400"
-                      : "bg-[#1a1a2e] border-gray-700 text-gray-400 hover:border-indigo-500"
+                      : `bg-[#1a1a2e] border-gray-700 text-gray-400 ${
+                          publicMode ? "hover:border-blue-500" : "hover:border-indigo-500"
+                        }`
                 }`}
               >
                 <div className="flex justify-center mb-1">
                   <ModeIcon className="w-6 h-6" />
                 </div>
                 <div className="font-semibold">{m.label}</div>
-                <div className="text-xs opacity-70 mt-0.5">{m.description}</div>
+                <div className="text-xs opacity-70 mt-0.5">
+                  {publicMode && m.id === "disease" && !token
+                    ? "Login required"
+                    : m.description}
+                </div>
               </button>
             );
           })}
         </div>
+
+        {publicMode && publicUsage && (
+          <div className={`mb-4 rounded-lg border px-3 py-2 text-sm ${isLight ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-blue-900/30 border-blue-700 text-blue-200"}`}>
+            Free demo scans left on this device: <span className="font-semibold">{publicUsage.demo_remaining}</span> / {publicUsage.demo_limit}
+          </div>
+        )}
 
         <div className="mb-4">
           <input
@@ -384,10 +504,13 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
             ) : (
               <div className="py-8 select-none">
                 <div className="flex justify-center mb-3">
-                  <Upload className="w-12 h-12 text-indigo-400" />
+                  <Upload className={`w-12 h-12 ${publicMode ? "text-blue-500" : "text-indigo-400"}`} />
                 </div>
                 <p className="text-gray-400">
-                  Drag and drop or <span className={isLight ? "text-blue-600" : "text-indigo-400"}>click to upload</span>
+                  Drag and drop or{" "}
+                  <span className={publicMode ? "text-blue-600" : isLight ? "text-blue-600" : "text-indigo-400"}>
+                    click to upload
+                  </span>
                 </p>
                 <p className={`text-xs mt-1 ${isLight ? "text-gray-500" : "text-gray-600"}`}>JPG, PNG, WEBP up to 10 MB</p>
               </div>
@@ -397,8 +520,10 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
 
         <button
           onClick={handleScan}
-          disabled={!file || loading}
-          className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-white transition-all text-lg mb-6 inline-flex items-center justify-center gap-2"
+          disabled={!file || loading || (publicMode && publicUsage?.demo_remaining === 0)}
+          className={`w-full py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-white transition-all text-lg mb-6 inline-flex items-center justify-center gap-2 ${
+            publicMode ? "bg-blue-600 hover:bg-blue-500" : "bg-indigo-600 hover:bg-indigo-500"
+          }`}
         >
           {loading ? (
             <>
@@ -415,6 +540,12 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
             </>
           )}
         </button>
+
+        {publicMode && publicUsage?.demo_remaining === 0 && (
+          <p className={`text-sm mb-4 ${isLight ? "text-red-600" : "text-red-300"}`}>
+            Demo limit reached on this device. Sign up to keep scanning and save results.
+          </p>
+        )}
 
         {error && (
           <div className={`rounded-xl p-4 mb-4 text-sm flex items-start gap-2 ${isLight ? "bg-red-50 border border-red-200 text-red-700" : "bg-red-900/40 border border-red-700 text-red-300"}`}>
@@ -603,7 +734,7 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
                       </div>
                     ))}
                   </div>
-                  {renderSaveButton()}
+                  {!publicMode && renderSaveButton()}
                 </div>
               </>
             )}
@@ -617,7 +748,7 @@ export function ScanWorkspace({ inModal = false, onClose = null }) {
                     <DiseaseResultCard key={i} disease={disease} rank={i + 1} />
                   ))}
                 </div>
-                {renderSaveButton()}
+                {!publicMode && renderSaveButton()}
               </div>
             )}
           </div>

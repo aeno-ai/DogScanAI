@@ -8,6 +8,10 @@ require('dotenv').config();
 const authRoutes = require("./routes/auth");
 const scanRoutes = require("./routes/scans");
 const breedsRoutes = require("./routes/breeds.routes");
+const adminUsersRoutes = require("./routes/admin.users");
+const adminContributionsRoutes = require("./routes/admin.contributions");
+const adminDashboardRoutes = require("./routes/admin.dashboard");
+const profileRoutes = require("./routes/profile");
 
 const app = express();
 
@@ -45,6 +49,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/scans", scanRoutes);
 app.use("/api", breedsRoutes);
+app.use("/api/admin/users", adminUsersRoutes);
+app.use("/api/admin/contributions", adminContributionsRoutes);
+app.use("/api/admin/dashboard", adminDashboardRoutes);
+app.use("/api/profile", profileRoutes);
 
 
 // Health check endpoint
@@ -63,12 +71,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
-});
-
-
 // Add this right after your routes section in server.js
 app.get('/api/test-db', async (req, res) => {
   const pool = require('./config/database');
@@ -85,6 +87,11 @@ app.get('/api/test-db', async (req, res) => {
       stack: error.stack
     });
   }
+});
+
+// 404 handler (keep this last so it does not shadow real routes)
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
 });
 // ============================================
 // START SERVER

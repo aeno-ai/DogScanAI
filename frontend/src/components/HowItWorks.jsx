@@ -5,7 +5,7 @@ const steps = [
     icon: Camera,
     step: "01",
     title: "Take a Photo",
-    description: "Snap a clear photo of your dog using your phone's camera or upload an existing image.",
+    description: "Snap a clear photo of your dog using your device's camera or upload an existing image.",
   },
   {
     icon: Cpu,

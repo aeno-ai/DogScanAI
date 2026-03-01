@@ -1,5 +1,5 @@
 import { Camera, Users, Smartphone } from "lucide-react";
-import heroImage from "../assets/hero-dog.jpg"; 
+import heroImage from "../assets/hero-dog.jpg";
 
 const Hero = () => {
   return (
@@ -9,33 +9,27 @@ const Hero = () => {
           <div className="text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-600 font-medium text-sm mb-6">
               <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-              Powered by AI • 98.5% Accuracy
+              Powered by AI | 98.5% Accuracy
             </div>
 
             <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Discover Your Dog's <span className="text-blue-600">True Breed</span> in Seconds
+              Discover Your Dog&apos;s <span className="text-blue-600">True Breed</span> in Seconds
             </h1>
 
             <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-xl mx-auto lg:mx-0">
-              Upload a photo or snap a picture — our AI instantly identifies breeds, compares
+              Upload a photo or snap a picture - our AI instantly identifies breeds, compares
               traits, and gives you tailored care tips.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
               <a
                 href="#predict"
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-colors shadow-lg"
+                className="scroll-smooth inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-colors shadow-lg"
               >
                 <Camera className="w-5 h-5" />
                 Try Live Scan
               </a>
-              <a
-                href="#gallery"
-                className="inline-flex items-center justify-center gap-2 border-2 border-gray-300 bg-white text-gray-900 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-gray-100 transition-colors"
-              >
-                <Users className="w-5 h-5" />
-                Browse Community
-              </a>
+              
             </div>
 
             <div className="flex flex-col items-center lg:items-start gap-3">
@@ -48,7 +42,6 @@ const Hero = () => {
                 <button className="h-10 px-4 bg-gray-900 text-white rounded-lg flex items-center gap-2 hover:opacity-90 transition-opacity text-sm">
                   Download
                 </button>
-              
               </div>
             </div>
           </div>
@@ -81,11 +74,10 @@ const Hero = () => {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </section>
   );
-}
+};
 
 export default Hero;

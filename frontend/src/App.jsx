@@ -1,9 +1,12 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { UIProvider } from "./context/UIContext";
 import { ToastProvider } from "./components/Toast";
 import ProtectedRoute from "./pages/auth/ProtectedRoute";
+import AdminRoute from "./pages/auth/AdminRoute";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./layouts/AdminLayout";
 
 // Import pages
 import LandingPage from "./pages/LandingPage";
@@ -13,68 +16,75 @@ import DashboardPage from "./pages/Dashboard";
 import DogLibrary from "./pages/DogLibrary"
 import HistoryPage from "./pages/History";
 import ProfilePage from "./pages/ProfilePage";
-import Community from "./pages/Community";
+import AdminOverviewPage from "./pages/admin/AdminOverviewPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminContributionsPage from "./pages/admin/AdminContributionsPage";
 
 function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
-          <Route path="/doglibrary" element={<DogLibrary/>}/>
-          
+        <UIProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/doglibrary" element={<DogLibrary/>}/>
+            
 
-          {/* Protected routes */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/scan" element={<Navigate to="/dashboard?scan=1" replace />} />
-          <Route path="/scanpage" element={<Navigate to="/dashboard?scan=1" replace />} />
-          <Route
-            path="/doglibrary"
-            element={
-              <ProtectedRoute>
-                <DogLibrary />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/history"
-            element={
-              <ProtectedRoute>
-                <HistoryPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/community"
-            element={
-              <ProtectedRoute>
-                <Community />
-              </ProtectedRoute>
-            }
-          />
-
-
-          {/* Catch-all redirect */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Protected routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute redirectAdminTo="/admin/overview">
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/scan" element={<Navigate to="/dashboard?scan=1" replace />} />
+            <Route path="/scanpage" element={<Navigate to="/dashboard?scan=1" replace />} />
+            <Route
+              path="/doglibrary"
+              element={
+                <ProtectedRoute>
+                  <DogLibrary />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <HistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminLayout />
+                </AdminRoute>
+              }
+            >
+              <Route index element={<Navigate to="/admin/overview" replace />} />
+              <Route path="overview" element={<AdminOverviewPage />} />
+              <Route path="users" element={<AdminUsersPage />} />
+              <Route path="contributions" element={<AdminContributionsPage />} />
+            </Route>
+            {/* Catch-all redirect */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </UIProvider>
       </AuthProvider>
     </ToastProvider>
   );

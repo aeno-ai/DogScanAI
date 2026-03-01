@@ -1,13 +1,14 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 /**
  * Wrapper component that protects routes
  * Redirects to login if user is not authenticated
  */
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, redirectAdminTo = null }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   // Show loading while checking authentication
   if (loading) {
@@ -21,9 +22,13 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // If not authenticated, redirect to login
+  // If not authenticated, redirect to login and preserve destination
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (redirectAdminTo && user.is_admin) {
+    return <Navigate to={redirectAdminTo} replace />;
   }
 
   // User is authenticated, render the protected component

@@ -44,110 +44,110 @@ const DogLibrary = () => {
       { value: "giant", label: "Giant" },
     ],
     temperaments: [
-  { value: "all", label: "All Temperaments" },
+      { value: "all", label: "All Temperaments" },
 
-  // Social / People-oriented
-  { value: "playful", label: "Playful" },
-  { value: "loyal", label: "Loyal" },
-  { value: "affectionate", label: "Affectionate" },
-  { value: "devoted", label: "Devoted" },
-  { value: "loving", label: "Loving" },
-  { value: "sociable", label: "Sociable" },
-  { value: "social", label: "Social" },
-  { value: "sweet", label: "Sweet" },
+      // Social / People-oriented
+      { value: "playful", label: "Playful" },
+      { value: "loyal", label: "Loyal" },
+      { value: "affectionate", label: "Affectionate" },
+      { value: "devoted", label: "Devoted" },
+      { value: "loving", label: "Loving" },
+      { value: "sociable", label: "Sociable" },
+      { value: "social", label: "Social" },
+      { value: "sweet", label: "Sweet" },
 
-  // Friendly / Easy-going
-  { value: "friendly", label: "Friendly" },
-  { value: "gentle", label: "Gentle" },
-  { value: "amiable", label: "Amiable" },
-  { value: "good-natured", label: "Good-Natured" },
-  { value: "good-tempered", label: "Good-Tempered" },
-  { value: "pleasant", label: "Pleasant" },
-  { value: "easygoing", label: "Easygoing" },
-  { value: "even-tempered", label: "Even-Tempered" },
-  { value: "patient", label: "Patient" },
-  { value: "docile", label: "Docile" },
-  { value: "lovable", label: "Lovable" },
+      // Friendly / Easy-going
+      { value: "friendly", label: "Friendly" },
+      { value: "gentle", label: "Gentle" },
+      { value: "amiable", label: "Amiable" },
+      { value: "good-natured", label: "Good-Natured" },
+      { value: "good-tempered", label: "Good-Tempered" },
+      { value: "pleasant", label: "Pleasant" },
+      { value: "easygoing", label: "Easygoing" },
+      { value: "even-tempered", label: "Even-Tempered" },
+      { value: "patient", label: "Patient" },
+      { value: "docile", label: "Docile" },
+      { value: "lovable", label: "Lovable" },
 
-  // Energetic / Active
-  { value: "energetic", label: "Energetic" },
-  { value: "active", label: "Active" },
-  { value: "athletic", label: "Athletic" },
-  { value: "agile", label: "Agile" },
-  { value: "lively", label: "Lively" },
-  { value: "vivacious", label: "Vivacious" },
-  { value: "exuberant", label: "Exuberant" },
-  { value: "boisterous", label: "Boisterous" },
-  { value: "fun-loving", label: "Fun-Loving" },
-  { value: "merry", label: "Merry" },
-  { value: "happy", label: "Happy" },
-  { value: "cheerful", label: "Cheerful" },
-  { value: "outgoing", label: "Outgoing" },
-  { value: "vocal", label: "Vocal" },
+      // Energetic / Active
+      { value: "energetic", label: "Energetic" },
+      { value: "active", label: "Active" },
+      { value: "athletic", label: "Athletic" },
+      { value: "agile", label: "Agile" },
+      { value: "lively", label: "Lively" },
+      { value: "vivacious", label: "Vivacious" },
+      { value: "exuberant", label: "Exuberant" },
+      { value: "boisterous", label: "Boisterous" },
+      { value: "fun-loving", label: "Fun-Loving" },
+      { value: "merry", label: "Merry" },
+      { value: "happy", label: "Happy" },
+      { value: "cheerful", label: "Cheerful" },
+      { value: "outgoing", label: "Outgoing" },
+      { value: "vocal", label: "Vocal" },
 
-  // Calm / Quiet
-  { value: "calm", label: "Calm" },
-  { value: "quiet", label: "Quiet" },
-  { value: "adaptable", label: "Adaptable" },
-  { value: "sensitive", label: "Sensitive" },
-  { value: "responsive", label: "Responsive" },
-  { value: "resilient", label: "Resilient" },
-  { value: "comical", label: "Comical" },
-  { value: "clownish", label: "Clownish" },
-  { value: "charming", label: "Charming" },
-  { value: "optimistic", label: "Optimistic" },
+      // Calm / Quiet
+      { value: "calm", label: "Calm" },
+      { value: "quiet", label: "Quiet" },
+      { value: "adaptable", label: "Adaptable" },
+      { value: "sensitive", label: "Sensitive" },
+      { value: "responsive", label: "Responsive" },
+      { value: "resilient", label: "Resilient" },
+      { value: "comical", label: "Comical" },
+      { value: "clownish", label: "Clownish" },
+      { value: "charming", label: "Charming" },
+      { value: "optimistic", label: "Optimistic" },
 
-  // Protective / Bold
-  { value: "protective", label: "Protective" },
-  { value: "courageous", label: "Courageous" },
-  { value: "brave", label: "Brave" },
-  { value: "bold", label: "Bold" },
-  { value: "fearless", label: "Fearless" },
-  { value: "daring", label: "Daring" },
-  { value: "feisty", label: "Feisty" },
-  { value: "spirited", label: "Spirited" },
-  { value: "tenacious", label: "Tenacious" },
-  { value: "assertive", label: "Assertive" },
-  { value: "dominant", label: "Dominant" },
-  { value: "sassy", label: "Sassy" },
+      // Protective / Bold
+      { value: "protective", label: "Protective" },
+      { value: "courageous", label: "Courageous" },
+      { value: "brave", label: "Brave" },
+      { value: "bold", label: "Bold" },
+      { value: "fearless", label: "Fearless" },
+      { value: "daring", label: "Daring" },
+      { value: "feisty", label: "Feisty" },
+      { value: "spirited", label: "Spirited" },
+      { value: "tenacious", label: "Tenacious" },
+      { value: "assertive", label: "Assertive" },
+      { value: "dominant", label: "Dominant" },
+      { value: "sassy", label: "Sassy" },
 
-  // Intelligent / Trainable
-  { value: "intelligent", label: "Intelligent" },
-  { value: "smart", label: "Smart" },
-  { value: "bright", label: "Bright" },
-  { value: "trainable", label: "Trainable" },
-  { value: "obedient", label: "Obedient" },
-  { value: "alert", label: "Alert" },
-  { value: "curious", label: "Curious" },
-  { value: "inquisitive", label: "Inquisitive" },
-  { value: "cooperative", label: "Cooperative" },
-  { value: "hardworking", label: "Hardworking" },
-  { value: "eager", label: "Eager" },
+      // Intelligent / Trainable
+      { value: "intelligent", label: "Intelligent" },
+      { value: "smart", label: "Smart" },
+      { value: "bright", label: "Bright" },
+      { value: "trainable", label: "Trainable" },
+      { value: "obedient", label: "Obedient" },
+      { value: "alert", label: "Alert" },
+      { value: "curious", label: "Curious" },
+      { value: "inquisitive", label: "Inquisitive" },
+      { value: "cooperative", label: "Cooperative" },
+      { value: "hardworking", label: "Hardworking" },
+      { value: "eager", label: "Eager" },
 
-  // Reliable / Working traits
-  { value: "reliable", label: "Reliable" },
-  { value: "trustworthy", label: "Trustworthy" },
-  { value: "faithful", label: "Faithful" },
-  { value: "dependable", label: "Dependable" },
-  { value: "willing", label: "Willing" },
-  { value: "hardy", label: "Hardy" },
-  { value: "strong", label: "Strong" },
-  { value: "determined", label: "Determined" },
-  { value: "confident", label: "Confident" },
-  { value: "self-assured", label: "Self-Assured" },
-  { value: "quick", label: "Quick" },
+      // Reliable / Working traits
+      { value: "reliable", label: "Reliable" },
+      { value: "trustworthy", label: "Trustworthy" },
+      { value: "faithful", label: "Faithful" },
+      { value: "dependable", label: "Dependable" },
+      { value: "willing", label: "Willing" },
+      { value: "hardy", label: "Hardy" },
+      { value: "strong", label: "Strong" },
+      { value: "determined", label: "Determined" },
+      { value: "confident", label: "Confident" },
+      { value: "self-assured", label: "Self-Assured" },
+      { value: "quick", label: "Quick" },
 
-  // Independent / Aloof
-  { value: "independent", label: "Independent" },
-  { value: "aloof", label: "Aloof" },
-  { value: "dignified", label: "Dignified" },
-  { value: "regal", label: "Regal" },
-  { value: "stubborn", label: "Stubborn" },
-  { value: "strong-willed", label: "Strong-Willed" },
-  { value: "wary-of-strangers", label: "Wary of Strangers" },
-  { value: "cat-like", label: "Cat-Like" },
-  { value: "mischievous", label: "Mischievous" }
-],
+      // Independent / Aloof
+      { value: "independent", label: "Independent" },
+      { value: "aloof", label: "Aloof" },
+      { value: "dignified", label: "Dignified" },
+      { value: "regal", label: "Regal" },
+      { value: "stubborn", label: "Stubborn" },
+      { value: "strong-willed", label: "Strong-Willed" },
+      { value: "wary-of-strangers", label: "Wary of Strangers" },
+      { value: "cat-like", label: "Cat-Like" },
+      { value: "mischievous", label: "Mischievous" },
+    ],
   };
 
   const breedCardConfig = {
@@ -169,110 +169,402 @@ const DogLibrary = () => {
   };
 
   const temperamentConfig = {
-  badges: [
-    // Blue — Social / People-oriented
-    { value: "playful",         label: "Playful",         color: "bg-blue-100 text-blue-700" },
-    { value: "loyal",           label: "Loyal",           color: "bg-blue-100 text-blue-700" },
-    { value: "affectionate",    label: "Affectionate",    color: "bg-blue-100 text-blue-700" },
-    { value: "devoted",         label: "Devoted",         color: "bg-blue-100 text-blue-700" },
-    { value: "loving",          label: "Loving",          color: "bg-blue-100 text-blue-700" },
-    { value: "sociable",        label: "Sociable",        color: "bg-blue-100 text-blue-700" },
-    { value: "social",          label: "Social",          color: "bg-blue-100 text-blue-700" },
-    { value: "sweet",           label: "Sweet",           color: "bg-blue-100 text-blue-700" },
+    badges: [
+      // Blue — Social / People-oriented
+      {
+        value: "playful",
+        label: "Playful",
+        color: "bg-blue-100 text-blue-700",
+      },
+      { value: "loyal", label: "Loyal", color: "bg-blue-100 text-blue-700" },
+      {
+        value: "affectionate",
+        label: "Affectionate",
+        color: "bg-blue-100 text-blue-700",
+      },
+      {
+        value: "devoted",
+        label: "Devoted",
+        color: "bg-blue-100 text-blue-700",
+      },
+      { value: "loving", label: "Loving", color: "bg-blue-100 text-blue-700" },
+      {
+        value: "sociable",
+        label: "Sociable",
+        color: "bg-blue-100 text-blue-700",
+      },
+      { value: "social", label: "Social", color: "bg-blue-100 text-blue-700" },
+      { value: "sweet", label: "Sweet", color: "bg-blue-100 text-blue-700" },
 
-    // Green — Friendly / Easy-going
-    { value: "friendly",        label: "Friendly",        color: "bg-green-100 text-green-700" },
-    { value: "gentle",          label: "Gentle",          color: "bg-green-100 text-green-700" },
-    { value: "amiable",         label: "Amiable",         color: "bg-green-100 text-green-700" },
-    { value: "good-natured",    label: "Good-Natured",    color: "bg-green-100 text-green-700" },
-    { value: "good-tempered",   label: "Good-Tempered",   color: "bg-green-100 text-green-700" },
-    { value: "pleasant",        label: "Pleasant",        color: "bg-green-100 text-green-700" },
-    { value: "easygoing",       label: "Easygoing",       color: "bg-green-100 text-green-700" },
-    { value: "even-tempered",   label: "Even-Tempered",   color: "bg-green-100 text-green-700" },
-    { value: "patient",         label: "Patient",         color: "bg-green-100 text-green-700" },
-    { value: "docile",          label: "Docile",          color: "bg-green-100 text-green-700" },
-    { value: "lovable",         label: "Lovable",         color: "bg-green-100 text-green-700" },
+      // Green — Friendly / Easy-going
+      {
+        value: "friendly",
+        label: "Friendly",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "gentle",
+        label: "Gentle",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "amiable",
+        label: "Amiable",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "good-natured",
+        label: "Good-Natured",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "good-tempered",
+        label: "Good-Tempered",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "pleasant",
+        label: "Pleasant",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "easygoing",
+        label: "Easygoing",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "even-tempered",
+        label: "Even-Tempered",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "patient",
+        label: "Patient",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "docile",
+        label: "Docile",
+        color: "bg-green-100 text-green-700",
+      },
+      {
+        value: "lovable",
+        label: "Lovable",
+        color: "bg-green-100 text-green-700",
+      },
 
-    // Orange — Energetic / Active
-    { value: "energetic",       label: "Energetic",       color: "bg-orange-100 text-orange-700" },
-    { value: "active",          label: "Active",          color: "bg-orange-100 text-orange-700" },
-    { value: "athletic",        label: "Athletic",        color: "bg-orange-100 text-orange-700" },
-    { value: "agile",           label: "Agile",           color: "bg-orange-100 text-orange-700" },
-    { value: "lively",          label: "Lively",          color: "bg-orange-100 text-orange-700" },
-    { value: "vivacious",       label: "Vivacious",       color: "bg-orange-100 text-orange-700" },
-    { value: "exuberant",       label: "Exuberant",       color: "bg-orange-100 text-orange-700" },
-    { value: "boisterous",      label: "Boisterous",      color: "bg-orange-100 text-orange-700" },
-    { value: "fun-loving",      label: "Fun-Loving",      color: "bg-orange-100 text-orange-700" },
-    { value: "merry",           label: "Merry",           color: "bg-orange-100 text-orange-700" },
-    { value: "happy",           label: "Happy",           color: "bg-orange-100 text-orange-700" },
-    { value: "cheerful",        label: "Cheerful",        color: "bg-orange-100 text-orange-700" },
-    { value: "outgoing",        label: "Outgoing",        color: "bg-orange-100 text-orange-700" },
-    { value: "vocal",           label: "Vocal",           color: "bg-orange-100 text-orange-700" },
+      // Orange — Energetic / Active
+      {
+        value: "energetic",
+        label: "Energetic",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "active",
+        label: "Active",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "athletic",
+        label: "Athletic",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "agile",
+        label: "Agile",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "lively",
+        label: "Lively",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "vivacious",
+        label: "Vivacious",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "exuberant",
+        label: "Exuberant",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "boisterous",
+        label: "Boisterous",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "fun-loving",
+        label: "Fun-Loving",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "merry",
+        label: "Merry",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "happy",
+        label: "Happy",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "cheerful",
+        label: "Cheerful",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "outgoing",
+        label: "Outgoing",
+        color: "bg-orange-100 text-orange-700",
+      },
+      {
+        value: "vocal",
+        label: "Vocal",
+        color: "bg-orange-100 text-orange-700",
+      },
 
-    // Purple — Calm / Quiet
-    { value: "calm",            label: "Calm",            color: "bg-purple-100 text-purple-700" },
-    { value: "quiet",           label: "Quiet",           color: "bg-purple-100 text-purple-700" },
-    { value: "adaptable",       label: "Adaptable",       color: "bg-purple-100 text-purple-700" },
-    { value: "sensitive",       label: "Sensitive",       color: "bg-purple-100 text-purple-700" },
-    { value: "responsive",      label: "Responsive",      color: "bg-purple-100 text-purple-700" },
-    { value: "resilient",       label: "Resilient",       color: "bg-purple-100 text-purple-700" },
-    { value: "comical",         label: "Comical",         color: "bg-purple-100 text-purple-700" },
-    { value: "clownish",        label: "Clownish",        color: "bg-purple-100 text-purple-700" },
-    { value: "charming",        label: "Charming",        color: "bg-purple-100 text-purple-700" },
-    { value: "optimistic",      label: "Optimistic",      color: "bg-purple-100 text-purple-700" },
+      // Purple — Calm / Quiet
+      { value: "calm", label: "Calm", color: "bg-purple-100 text-purple-700" },
+      {
+        value: "quiet",
+        label: "Quiet",
+        color: "bg-purple-100 text-purple-700",
+      },
+      {
+        value: "adaptable",
+        label: "Adaptable",
+        color: "bg-purple-100 text-purple-700",
+      },
+      {
+        value: "sensitive",
+        label: "Sensitive",
+        color: "bg-purple-100 text-purple-700",
+      },
+      {
+        value: "responsive",
+        label: "Responsive",
+        color: "bg-purple-100 text-purple-700",
+      },
+      {
+        value: "resilient",
+        label: "Resilient",
+        color: "bg-purple-100 text-purple-700",
+      },
+      {
+        value: "comical",
+        label: "Comical",
+        color: "bg-purple-100 text-purple-700",
+      },
+      {
+        value: "clownish",
+        label: "Clownish",
+        color: "bg-purple-100 text-purple-700",
+      },
+      {
+        value: "charming",
+        label: "Charming",
+        color: "bg-purple-100 text-purple-700",
+      },
+      {
+        value: "optimistic",
+        label: "Optimistic",
+        color: "bg-purple-100 text-purple-700",
+      },
 
-    // Red — Protective / Bold
-    { value: "protective",      label: "Protective",      color: "bg-red-100 text-red-700" },
-    { value: "courageous",      label: "Courageous",      color: "bg-red-100 text-red-700" },
-    { value: "brave",           label: "Brave",           color: "bg-red-100 text-red-700" },
-    { value: "bold",            label: "Bold",            color: "bg-red-100 text-red-700" },
-    { value: "fearless",        label: "Fearless",        color: "bg-red-100 text-red-700" },
-    { value: "daring",          label: "Daring",          color: "bg-red-100 text-red-700" },
-    { value: "feisty",          label: "Feisty",          color: "bg-red-100 text-red-700" },
-    { value: "spirited",        label: "Spirited",        color: "bg-red-100 text-red-700" },
-    { value: "tenacious",       label: "Tenacious",       color: "bg-red-100 text-red-700" },
-    { value: "assertive",       label: "Assertive",       color: "bg-red-100 text-red-700" },
-    { value: "dominant",        label: "Dominant",        color: "bg-red-100 text-red-700" },
-    { value: "sassy",           label: "Sassy",           color: "bg-red-100 text-red-700" },
+      // Red — Protective / Bold
+      {
+        value: "protective",
+        label: "Protective",
+        color: "bg-red-100 text-red-700",
+      },
+      {
+        value: "courageous",
+        label: "Courageous",
+        color: "bg-red-100 text-red-700",
+      },
+      { value: "brave", label: "Brave", color: "bg-red-100 text-red-700" },
+      { value: "bold", label: "Bold", color: "bg-red-100 text-red-700" },
+      {
+        value: "fearless",
+        label: "Fearless",
+        color: "bg-red-100 text-red-700",
+      },
+      { value: "daring", label: "Daring", color: "bg-red-100 text-red-700" },
+      { value: "feisty", label: "Feisty", color: "bg-red-100 text-red-700" },
+      {
+        value: "spirited",
+        label: "Spirited",
+        color: "bg-red-100 text-red-700",
+      },
+      {
+        value: "tenacious",
+        label: "Tenacious",
+        color: "bg-red-100 text-red-700",
+      },
+      {
+        value: "assertive",
+        label: "Assertive",
+        color: "bg-red-100 text-red-700",
+      },
+      {
+        value: "dominant",
+        label: "Dominant",
+        color: "bg-red-100 text-red-700",
+      },
+      { value: "sassy", label: "Sassy", color: "bg-red-100 text-red-700" },
 
-    // Indigo — Intelligent / Trainable
-    { value: "intelligent",     label: "Intelligent",     color: "bg-indigo-100 text-indigo-700" },
-    { value: "smart",           label: "Smart",           color: "bg-indigo-100 text-indigo-700" },
-    { value: "bright",          label: "Bright",          color: "bg-indigo-100 text-indigo-700" },
-    { value: "trainable",       label: "Trainable",       color: "bg-indigo-100 text-indigo-700" },
-    { value: "obedient",        label: "Obedient",        color: "bg-indigo-100 text-indigo-700" },
-    { value: "alert",           label: "Alert",           color: "bg-indigo-100 text-indigo-700" },
-    { value: "curious",         label: "Curious",         color: "bg-indigo-100 text-indigo-700" },
-    { value: "inquisitive",     label: "Inquisitive",     color: "bg-indigo-100 text-indigo-700" },
-    { value: "cooperative",     label: "Cooperative",     color: "bg-indigo-100 text-indigo-700" },
-    { value: "hardworking",     label: "Hardworking",     color: "bg-indigo-100 text-indigo-700" },
-    { value: "eager",           label: "Eager",           color: "bg-indigo-100 text-indigo-700" },
+      // Indigo — Intelligent / Trainable
+      {
+        value: "intelligent",
+        label: "Intelligent",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "smart",
+        label: "Smart",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "bright",
+        label: "Bright",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "trainable",
+        label: "Trainable",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "obedient",
+        label: "Obedient",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "alert",
+        label: "Alert",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "curious",
+        label: "Curious",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "inquisitive",
+        label: "Inquisitive",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "cooperative",
+        label: "Cooperative",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "hardworking",
+        label: "Hardworking",
+        color: "bg-indigo-100 text-indigo-700",
+      },
+      {
+        value: "eager",
+        label: "Eager",
+        color: "bg-indigo-100 text-indigo-700",
+      },
 
-    // Teal — Reliable / Working traits
-    { value: "reliable",        label: "Reliable",        color: "bg-teal-100 text-teal-700" },
-    { value: "trustworthy",     label: "Trustworthy",     color: "bg-teal-100 text-teal-700" },
-    { value: "faithful",        label: "Faithful",        color: "bg-teal-100 text-teal-700" },
-    { value: "dependable",      label: "Dependable",      color: "bg-teal-100 text-teal-700" },
-    { value: "willing",         label: "Willing",         color: "bg-teal-100 text-teal-700" },
-    { value: "hardy",           label: "Hardy",           color: "bg-teal-100 text-teal-700" },
-    { value: "strong",          label: "Strong",          color: "bg-teal-100 text-teal-700" },
-    { value: "determined",      label: "Determined",      color: "bg-teal-100 text-teal-700" },
-    { value: "confident",       label: "Confident",       color: "bg-teal-100 text-teal-700" },
-    { value: "self-assured",    label: "Self-Assured",    color: "bg-teal-100 text-teal-700" },
-    { value: "quick",           label: "Quick",           color: "bg-teal-100 text-teal-700" },
+      // Teal — Reliable / Working traits
+      {
+        value: "reliable",
+        label: "Reliable",
+        color: "bg-teal-100 text-teal-700",
+      },
+      {
+        value: "trustworthy",
+        label: "Trustworthy",
+        color: "bg-teal-100 text-teal-700",
+      },
+      {
+        value: "faithful",
+        label: "Faithful",
+        color: "bg-teal-100 text-teal-700",
+      },
+      {
+        value: "dependable",
+        label: "Dependable",
+        color: "bg-teal-100 text-teal-700",
+      },
+      {
+        value: "willing",
+        label: "Willing",
+        color: "bg-teal-100 text-teal-700",
+      },
+      { value: "hardy", label: "Hardy", color: "bg-teal-100 text-teal-700" },
+      { value: "strong", label: "Strong", color: "bg-teal-100 text-teal-700" },
+      {
+        value: "determined",
+        label: "Determined",
+        color: "bg-teal-100 text-teal-700",
+      },
+      {
+        value: "confident",
+        label: "Confident",
+        color: "bg-teal-100 text-teal-700",
+      },
+      {
+        value: "self-assured",
+        label: "Self-Assured",
+        color: "bg-teal-100 text-teal-700",
+      },
+      { value: "quick", label: "Quick", color: "bg-teal-100 text-teal-700" },
 
-    // Yellow — Independent / Aloof
-    { value: "independent",     label: "Independent",     color: "bg-yellow-100 text-yellow-700" },
-    { value: "aloof",           label: "Aloof",           color: "bg-yellow-100 text-yellow-700" },
-    { value: "dignified",       label: "Dignified",       color: "bg-yellow-100 text-yellow-700" },
-    { value: "regal",           label: "Regal",           color: "bg-yellow-100 text-yellow-700" },
-    { value: "stubborn",        label: "Stubborn",        color: "bg-yellow-100 text-yellow-700" },
-    { value: "strong-willed",   label: "Strong-Willed",   color: "bg-yellow-100 text-yellow-700" },
-    { value: "wary of strangers", label: "Wary of Strangers", color: "bg-yellow-100 text-yellow-700" },
-    { value: "cat-like",        label: "Cat-Like",        color: "bg-yellow-100 text-yellow-700" },
-    { value: "mischievous",     label: "Mischievous",     color: "bg-yellow-100 text-yellow-700" },
-  ],
-};
+      // Yellow — Independent / Aloof
+      {
+        value: "independent",
+        label: "Independent",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      {
+        value: "aloof",
+        label: "Aloof",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      {
+        value: "dignified",
+        label: "Dignified",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      {
+        value: "regal",
+        label: "Regal",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      {
+        value: "stubborn",
+        label: "Stubborn",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      {
+        value: "strong-willed",
+        label: "Strong-Willed",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      {
+        value: "wary of strangers",
+        label: "Wary of Strangers",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      {
+        value: "cat-like",
+        label: "Cat-Like",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      {
+        value: "mischievous",
+        label: "Mischievous",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+    ],
+  };
 
   // Transform JSON data to match component format
   const transformBreedData = (jsonBreed) => {
@@ -375,7 +667,62 @@ const DogLibrary = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
-      <TopNav />
+      <TopNav
+        centerContent={
+          <div className="flex items-center justify-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search breed..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48"
+              />
+            </div>
+
+            <select
+              value={selectedSize}
+              onChange={(e) => setSelectedSize(e.target.value)}
+              className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {filterConfig.sizes.map((size) => (
+                <option key={size.value} value={size.value}>
+                  {size.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedTemperament}
+              onChange={(e) => setSelectedTemperament(e.target.value)}
+              className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {filterConfig.temperaments.map((temp) => (
+                <option key={temp.value} value={temp.value}>
+                  {temp.label}
+                </option>
+              ))}
+            </select>
+
+            {(searchTerm ||
+              selectedSize !== "all" ||
+              selectedTemperament !== "all") && (
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedSize("all");
+                  setSelectedTemperament("all");
+                }}
+                className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
+              >
+                Clear
+              </button>
+            )}
+           
+          </div>
+        }
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
         {/* Header */}
@@ -389,85 +736,7 @@ const DogLibrary = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar Filters */}
-          <div className="lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
-              <div className="flex items-center gap-2 mb-6">
-                <Filter className="w-5 h-5 text-blue-600" />
-                <h2 className="font-semibold text-gray-900">Filters</h2>
-              </div>
-
-              {/* Search */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search Breed
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              {/* Size Filter */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Size
-                </label>
-                <select
-                  value={selectedSize}
-                  onChange={(e) => setSelectedSize(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {filterConfig.sizes.map((size) => (
-                    <option key={size.value} value={size.value}>
-                      {size.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Temperament Filter */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Temperament
-                </label>
-                <select
-                  value={selectedTemperament}
-                  onChange={(e) => setSelectedTemperament(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {filterConfig.temperaments.map((temp) => (
-                    <option key={temp.value} value={temp.value}>
-                      {temp.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Clear Filters */}
-              {(searchTerm ||
-                selectedSize !== "all" ||
-                selectedTemperament !== "all") && (
-                <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSelectedSize("all");
-                    setSelectedTemperament("all");
-                  }}
-                  className="w-full px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors font-medium"
-                >
-                  Clear All Filters
-                </button>
-              )}
-            </div>
-          </div>
-
+          
           {/* Main Content */}
           <div className="flex-1">
             {/* Results Count */}
@@ -624,15 +893,6 @@ const DogLibrary = () => {
                           })}
                         </div>
                       </div>
-
-                      {/* View Details Button */}
-                      <button
-                        onClick={() => navigate(`/breeds/${breed.id}`)}
-                        className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-medium flex items-center justify-center gap-2"
-                      >
-                        View Full Details
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 ))}

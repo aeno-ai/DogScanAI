@@ -14,6 +14,12 @@ const auth = require("../middleware/auth");
 const FLASK_URL = process.env.FLASK_URL || "http://localhost:5001";
 const DB_UNAVAILABLE_CODES = new Set(["ECONNREFUSED", "ETIMEDOUT", "57P01", "57P02", "57P03"]);
 const SCAN_UPLOAD_DIR = path.resolve(__dirname, "../uploads/scans");
+const PUBLIC_SCAN_LIMIT =
+  Number.isInteger(Number(process.env.PUBLIC_SCAN_LIMIT)) && Number(process.env.PUBLIC_SCAN_LIMIT) > 0
+    ? Number(process.env.PUBLIC_SCAN_LIMIT)
+    : 5;
+const PUBLIC_SCAN_DEVICE_COOKIE = "dogscan_demo_device";
+const PUBLIC_SCAN_DEVICE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -149,34 +155,143 @@ function isDbUnavailable(err) {
   return DB_UNAVAILABLE_CODES.has(err?.code);
 }
 
+
 function handleDbError(err, res, context) {
   if (isDbUnavailable(err)) {
     return res.status(503).json({ error: "Database unavailable. Please try again." });
   }
   if (err.code === "42P01") {
-    return res.status(500).json({ error: "History tables missing. Run migrations first." });
+    return res.status(500).json({ error: "Required tables missing. Run migrations first." });
   }
   console.error(`[${context}] Error:`, err.message);
   return res.status(500).json({ error: "An unexpected error occurred." });
 }
 
-// Shared handler for /breed and /disease scan routes
-async function runScan(endpoint, req, res, buildPayload) {
+function getOrCreatePublicDeviceId(req, res) {
+  const existing = req.cookies?.[PUBLIC_SCAN_DEVICE_COOKIE];
+  if (typeof existing === "string" && existing.length >= 20) {
+    return existing;
+  }
+
+  const newDeviceId = crypto.randomUUID();
+  res.cookie(PUBLIC_SCAN_DEVICE_COOKIE, newDeviceId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: PUBLIC_SCAN_DEVICE_MAX_AGE_MS,
+  });
+  return newDeviceId;
+}
+
+function toPublicUsage(usedCount) {
+  const boundedUsed = Math.max(0, Math.min(PUBLIC_SCAN_LIMIT, Number(usedCount) || 0));
+  return {
+    demo_limit: PUBLIC_SCAN_LIMIT,
+    demo_used: boundedUsed,
+    demo_remaining: Math.max(0, PUBLIC_SCAN_LIMIT - boundedUsed),
+  };
+}
+
+async function fetchPublicUsage(deviceId) {
+  const result = await db.query(
+    `SELECT used_count
+     FROM public_scan_usage
+     WHERE device_id = $1
+       AND period_start = DATE_TRUNC('month', NOW())::date`,
+    [deviceId]
+  );
+  return Number(result.rows[0]?.used_count ?? 0);
+}
+
+async function consumePublicUsage(req, res) {
+  const deviceId = req.publicDeviceId || getOrCreatePublicDeviceId(req, res);
+  const result = await db.query(
+    `INSERT INTO public_scan_usage (device_id, period_start, used_count)
+     VALUES ($1, DATE_TRUNC('month', NOW())::date, 1)
+     ON CONFLICT (device_id, period_start)
+     DO UPDATE SET
+       used_count = LEAST(public_scan_usage.used_count + 1, $2),
+       updated_at = NOW()
+     RETURNING used_count`,
+    [deviceId, PUBLIC_SCAN_LIMIT]
+  );
+  return toPublicUsage(result.rows[0]?.used_count ?? 0);
+}
+
+async function enforcePublicScanLimit(req, res, next) {
+  const deviceId = getOrCreatePublicDeviceId(req, res);
+  try {
+    const used = await fetchPublicUsage(deviceId);
+
+    req.publicDeviceId = deviceId;
+    if (used >= PUBLIC_SCAN_LIMIT) {
+      return res.status(429).json({
+        error: `Public demo limit reached (${PUBLIC_SCAN_LIMIT} scans). Please sign up to continue.`,
+        ...toPublicUsage(used),
+      });
+    }
+
+    return next();
+  } catch (err) {
+    return handleDbError(err, res, "scans:public-limit");
+  }
+}
+
+async function buildBreedPayload(data) {
+  const topBreeds = Array.isArray(data?.top_breeds) ? data.top_breeds : [];
+  const breedMap = await getBreedsByIds(topBreeds.map((breed) => breed?.breed_id));
+  return {
+    scan_type: "breed",
+    top_breeds: topBreeds.map((breed) => ({
+      ...breed,
+      db_info: breedMap[breed?.breed_id] ?? null,
+    })),
+    emotion: data?.emotion ?? null,
+    age: data?.age ?? null,
+  };
+}
+
+function buildDiseasePayload(data) {
+  const raw = Array.isArray(data?.top_diseases) ? data.top_diseases : [];
+  const total = raw.reduce((sum, disease) => sum + Number(disease?.confidence ?? 0), 0);
+  return {
+    scan_type: "disease",
+    top_diseases: raw.map((disease) => ({
+      ...disease,
+      mix_share:
+        total > 0
+          ? Number(((Number(disease?.confidence ?? 0) / total) * 100).toFixed(1))
+          : 0,
+    })),
+  };
+}
+
+// Shared handler for scan routes
+async function runScan(endpoint, req, res, buildPayload, options = {}) {
   if (!req.file) return res.status(400).json({ error: "No image uploaded" });
+
+  const { persistUpload = true, onSuccess = null } = options;
 
   try {
     const flaskData = await callFlask(endpoint, toBase64(req.file));
     if (flaskData.error) return res.status(502).json({ error: flaskData.error });
 
     let uploadedImageUrl = null;
-    try {
-      uploadedImageUrl = await saveUploadedScanImage(req.file, req);
-    } catch (e) {
-      console.warn(`[${endpoint}] Failed to persist image:`, e.message);
+    if (persistUpload) {
+      try {
+        uploadedImageUrl = await saveUploadedScanImage(req.file, req);
+      } catch (e) {
+        console.warn(`[${endpoint}] Failed to persist image:`, e.message);
+      }
     }
 
     const payload = await buildPayload(flaskData);
-    return res.json({ uploaded_image_url: uploadedImageUrl, ...payload });
+    const extra = typeof onSuccess === "function" ? await onSuccess(req, res) : null;
+    const responseBody = { uploaded_image_url: uploadedImageUrl, ...payload };
+    if (extra && typeof extra === "object") {
+      Object.assign(responseBody, extra);
+    }
+    return res.json(responseBody);
   } catch (err) {
     console.error(`[${endpoint}] Error:`, err.message, err?.response?.data);
     if (err.code === "ECONNREFUSED") {
@@ -191,36 +306,33 @@ async function runScan(endpoint, req, res, buildPayload) {
 
 // ─── Routes ─────────────────────────────────────────────────────────────────
 
-router.post("/breed", auth, upload.single("image"), (req, res) =>
-  runScan("/predict/breed", req, res, async (data) => {
-    const breedMap = await getBreedsByIds(data.top_breeds.map((b) => b.breed_id));
-    return {
-      scan_type: "breed",
-      top_breeds: data.top_breeds.map((b) => ({
-        ...b,
-        db_info: breedMap[b.breed_id] ?? null,
-      })),
-      emotion: data.emotion,
-      age: data.age,
-    };
+router.get("/public/usage", async (req, res) => {
+  try {
+    const deviceId = getOrCreatePublicDeviceId(req, res);
+    const used = await fetchPublicUsage(deviceId);
+    return res.json(toPublicUsage(used));
+  } catch (err) {
+    return handleDbError(err, res, "scans:public-usage");
+  }
+});
+
+router.post("/public/breed", enforcePublicScanLimit, upload.single("image"), (req, res) =>
+  runScan("/predict/breed", req, res, buildBreedPayload, {
+    persistUpload: false,
+    onSuccess: consumePublicUsage,
   })
 );
 
+router.post("/public/disease", (_req, res) =>
+  res.status(401).json({ error: "Login required for disease scan." })
+);
+
+router.post("/breed", auth, upload.single("image"), (req, res) =>
+  runScan("/predict/breed", req, res, buildBreedPayload)
+);
+
 router.post("/disease", auth, upload.single("image"), (req, res) =>
-  runScan("/predict/disease", req, res, (data) => {
-    const raw = Array.isArray(data.top_diseases) ? data.top_diseases : [];
-    const total = raw.reduce((s, d) => s + Number(d?.confidence ?? 0), 0);
-    return {
-      scan_type: "disease",
-      top_diseases: raw.map((d) => ({
-        ...d,
-        mix_share:
-          total > 0
-            ? Number(((Number(d?.confidence ?? 0) / total) * 100).toFixed(1))
-            : 0,
-      })),
-    };
-  })
+  runScan("/predict/disease", req, res, buildDiseasePayload)
 );
 
 router.get("/breed/:breedId", async (req, res) => {
@@ -238,6 +350,24 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
   const userId = req.user?.userId ?? req.user?.id;
 
   let imageUrl = typeof req.body?.image_url === "string" ? req.body.image_url.trim() : "";
+  const requestedScanType =
+    typeof req.body?.scan_type === "string" ? req.body.scan_type.trim().toLowerCase() : "breed";
+  const scanType = requestedScanType || "breed";
+  if (!["breed", "disease"].includes(scanType)) {
+    return res.status(400).json({ error: "scan_type must be either 'breed' or 'disease'" });
+  }
+
+  const rawShareValue = req.body?.share_for_training;
+  const shareForTraining =
+    scanType === "breed" &&
+    (rawShareValue === true ||
+      rawShareValue === "true" ||
+      rawShareValue === 1 ||
+      rawShareValue === "1");
+
+  if (scanType !== "breed" && (rawShareValue === true || rawShareValue === "true")) {
+    return res.status(400).json({ error: "share_for_training is only allowed for breed scans" });
+  }
 
   let rawPredictions = req.body?.predictions;
   if (typeof rawPredictions === "string") {
@@ -270,8 +400,10 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
     await client.query("BEGIN");
 
     const historyResult = await client.query(
-      `INSERT INTO scan_history (user_id, image_url) VALUES ($1, $2) RETURNING id, scanned_at`,
-      [userId, imageUrl]
+      `INSERT INTO scan_history (user_id, image_url, scan_type)
+       VALUES ($1, $2, $3)
+       RETURNING id, scanned_at`,
+      [userId, imageUrl, scanType]
     );
 
     const scanId = historyResult.rows[0].id;
@@ -295,10 +427,38 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
       values
     );
 
+    let trainingSubmissionStatus = "not_shared";
+    if (shareForTraining) {
+      const topPrediction = predictions[0];
+      await client.query(
+        `INSERT INTO scan_contributions (
+          scan_id, user_id, status,
+          source_image_url, original_predictions,
+          model_top1_breed_id, model_top1_class_name, model_top1_display_name, model_top1_confidence
+        ) VALUES (
+          $1, $2, 'pending',
+          $3, $4::jsonb,
+          $5, $6, $7, $8
+        )`,
+        [
+          scanId,
+          userId,
+          imageUrl,
+          JSON.stringify(predictions),
+          topPrediction?.breed_id ?? null,
+          topPrediction?.class_name ?? "unknown",
+          topPrediction?.display_name ?? "Unknown",
+          Number(topPrediction?.confidence ?? 0),
+        ]
+      );
+      trainingSubmissionStatus = "pending";
+    }
+
     await client.query("COMMIT");
     return res.status(201).json({
       scan_id: scanId,
       scanned_at: historyResult.rows[0].scanned_at,
+      training_submission_status: trainingSubmissionStatus,
     });
   } catch (err) {
     if (client) await client.query("ROLLBACK");
@@ -323,6 +483,10 @@ router.get("/", auth, async (req, res) => {
         sh.id AS scan_id,
         sh.image_url,
         sh.scanned_at,
+        sh.scan_type,
+        sc.status AS training_status,
+        sc.review_reason AS training_rejection_reason,
+        sc.reviewed_at AS training_reviewed_at,
         sp.id AS prediction_id,
         sp.rank,
         sp.breed_id,
@@ -334,6 +498,7 @@ router.get("/", auth, async (req, res) => {
         b.lifespan_min, b.lifespan_max, b.snout, b.ears, b.coat, b.tail,
         b.health_considerations, b.key_health_tips
        FROM scan_history sh
+       LEFT JOIN scan_contributions sc ON sc.scan_id = sh.id
        LEFT JOIN scan_predictions sp ON sp.scan_id = sh.id
        LEFT JOIN breeds b ON b.breed_id = sp.breed_id
        WHERE sh.user_id = $1
@@ -348,6 +513,10 @@ router.get("/", auth, async (req, res) => {
           id: row.scan_id,
           image_url: row.image_url,
           scanned_at: row.scanned_at,
+          scan_type: row.scan_type || "breed",
+          training_status: row.training_status || "not_shared",
+          training_rejection_reason: row.training_rejection_reason || null,
+          training_reviewed_at: row.training_reviewed_at || null,
           predictions: [],
         });
       }
@@ -401,19 +570,36 @@ router.delete("/:id", auth, async (req, res) => {
     return res.status(400).json({ error: "Invalid scan id" });
   }
 
+  let client;
   try {
-    const ownership = await db.query(
+    client = await db.connect();
+    await client.query("BEGIN");
+
+    const ownership = await client.query(
       `SELECT id FROM scan_history WHERE id = $1 AND user_id = $2`,
       [scanId, userId]
     );
     if (ownership.rows.length === 0) {
+      await client.query("ROLLBACK");
       return res.status(404).json({ error: "Scan not found" });
     }
 
-    await db.query(`DELETE FROM scan_history WHERE id = $1`, [scanId]);
+    await client.query(
+      `DELETE FROM scan_contributions
+       WHERE scan_id = $1
+         AND user_id = $2
+         AND status = 'pending'`,
+      [scanId, userId]
+    );
+
+    await client.query(`DELETE FROM scan_history WHERE id = $1`, [scanId]);
+    await client.query("COMMIT");
     return res.json({ success: true });
   } catch (err) {
+    if (client) await client.query("ROLLBACK");
     return handleDbError(err, res, "scans:delete");
+  } finally {
+    if (client) client.release();
   }
 });
 

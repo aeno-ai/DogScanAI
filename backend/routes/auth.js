@@ -7,6 +7,54 @@ const router = express.Router();
 // file imports
 const pool = require("../config/database");
 
+function buildTokenPayload(user) {
+  return {
+    userId: user.id,
+    email: user.email,
+    sv: Number(user.session_version ?? 1),
+  };
+}
+
+function signToken(user) {
+  return jwt.sign(buildTokenPayload(user), process.env.JWT_SECRET, { expiresIn: "7d" });
+}
+
+function serializeUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    created_at: user.created_at,
+    is_admin: Boolean(user.is_admin),
+    is_superadmin: Boolean(user.is_superadmin),
+    is_banned: Boolean(user.is_banned),
+    banned_until: user.banned_until,
+  };
+}
+
+async function unbanIfExpired(client, user) {
+  if (!user?.is_banned) return user;
+
+  const banEnd = user.banned_until ? new Date(user.banned_until) : null;
+  const banEndTime = banEnd ? banEnd.getTime() : NaN;
+  const hasExpired = !banEnd || Number.isNaN(banEndTime) || banEndTime <= Date.now();
+  if (!hasExpired) return user;
+
+  const updated = await client.query(
+    `UPDATE users
+     SET is_banned = FALSE,
+         banned_until = NULL,
+         ban_reason = NULL,
+         banned_at = NULL,
+         banned_by = NULL
+     WHERE id = $1
+     RETURNING id, email, username, created_at, is_admin, is_superadmin, is_banned, banned_until, ban_reason, session_version`,
+    [user.id]
+  );
+
+  return updated.rows[0] ?? user;
+}
+
 // ============================================
 // REGISTER ENDPOINT
 // ============================================
@@ -43,7 +91,7 @@ router.post("/register", async (req, res) => {
     const insertQuery = `
             INSERT INTO users (email, password_hash, username)
             VALUES ($1, $2, $3)
-            RETURNING id, email, username, created_at
+            RETURNING id, email, username, created_at, is_admin, is_superadmin, is_banned, banned_until, session_version
         `;
 
     const insertResult = await client.query(insertQuery, [
@@ -54,14 +102,7 @@ router.post("/register", async (req, res) => {
 
     const newUser = insertResult.rows[0];
 
-    const token = jwt.sign(
-      {
-        userId: newUser.id,
-        email: newUser.email,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
+    const token = signToken(newUser);
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -73,11 +114,7 @@ router.post("/register", async (req, res) => {
     res.status(201).json({
       message: "User registered successfully",
       token: token, // For Android
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        username: newUser.username,
-      },
+      user: serializeUser(newUser),
     });
   } catch (error) {
     console.error("Register Error: ", error);
@@ -104,7 +141,13 @@ router.post("/login", async (req, res) => {
     }
 
     // 2. Find user
-    const query = "SELECT * FROM users WHERE email = $1";
+    const query = `
+      SELECT
+        id, email, username, created_at, password_hash,
+        is_admin, is_superadmin, is_banned, banned_until, ban_reason, session_version
+      FROM users
+      WHERE email = $1
+    `;
     const result = await client.query(query, [email]);
 
     if (result.rows.length === 0) {
@@ -124,15 +167,18 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    const normalizedUser = await unbanIfExpired(client, user);
+    if (normalizedUser.is_banned) {
+      return res.status(403).json({
+        error: "Your account is banned.",
+        code: "ACCOUNT_BANNED",
+        banned_until: normalizedUser.banned_until,
+        ban_reason: normalizedUser.ban_reason || null,
+      });
+    }
+
     // 4. Create JWT token
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
+    const token = signToken(normalizedUser);
 
     // 5. Set cookie (for web)
     res.cookie("token", token, {
@@ -146,12 +192,7 @@ router.post("/login", async (req, res) => {
     res.json({
       message: "Login successful",
       token: token, // For Android
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        created_at: user.created_at
-      },
+      user: serializeUser(normalizedUser),
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -189,15 +230,42 @@ router.get("/me", async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Get user from database
-    const query =
-      "SELECT id, email, username, created_at FROM users WHERE id = $1";
-    const result = await client.query(query, [decoded.userId]);
+    const query = `
+      SELECT
+        id, email, username, created_at,
+        is_admin, is_superadmin, is_banned, banned_until, ban_reason, session_version
+      FROM users
+      WHERE id = $1
+    `;
+    const tokenUserId = decoded?.userId ?? decoded?.id;
+    const result = await client.query(query, [tokenUserId]);
 
     if (result.rows.length === 0) {
       return res.status(401).json({ error: "User not found" });
     }
 
-    res.json({ user: result.rows[0], token });
+    const user = await unbanIfExpired(client, result.rows[0]);
+    if (Number(decoded?.sv ?? 1) !== Number(user.session_version ?? 1)) {
+      return res.status(401).json({ error: "Session expired. Please login again." });
+    }
+    if (user.is_banned) {
+      return res.status(403).json({
+        error: "Your account is banned.",
+        code: "ACCOUNT_BANNED",
+        banned_until: user.banned_until,
+        ban_reason: user.ban_reason || null,
+      });
+    }
+
+    const refreshedToken = signToken(user);
+    res.cookie("token", refreshedToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.json({ user: serializeUser(user), token: refreshedToken });
   } catch (error) {
     console.error("Auth verification error:", error);
     res.status(401).json({ error: "Invalid or expired token" });
