@@ -1,14 +1,17 @@
 """
 app.py  —  DogScan AI  |  Flask Model API
-Run: python app.py  (dev)  |  gunicorn -w 2 -b 0.0.0.0:5001 app:app  (prod)
+Run: python app.py  (dev)  |  gunicorn -w 1 -b 0.0.0.0:5001 app:app  (prod)
 
 Endpoints:
   GET  /health
   POST /predict/breed    { "image": "<base64>" }
   POST /predict/disease  { "image": "<base64>" }
+  POST /assistant/chat   { "message": "...", "thread_type": "general|scan", "scan_context": {}, "history": [] }
 """
 
 import os, json, base64, io, logging
+import threading
+from typing import Any
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -26,6 +29,29 @@ log = logging.getLogger(__name__)
 
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
+
+
+def _get_env_int(name: str, default: int, minimum: int) -> int:
+    raw = os.getenv(name, str(default)).strip()
+    try:
+        value = int(raw)
+    except Exception:
+        value = default
+    return max(minimum, value)
+
+
+def _get_env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _clip_text(value: Any, max_chars: int) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    return text[:max_chars]
 
 def load_json(filename):
     with open(os.path.join(MODELS_DIR, filename), "r", encoding="utf-8") as f:
@@ -80,16 +106,291 @@ EMOTION_LABELS = normalize_labels(load_json("emotion_labels.json"))
 AGE_LABELS     = normalize_labels(load_json("age_labels.json"))
 DISEASE_LABELS = normalize_labels(load_json("disease_info.json"), name_key="name")
 
-log.info("Loading Keras models... (may take a moment)")
-BREED_MODEL   = load_model(os.path.join(MODELS_DIR, "trained_model", "dog_breed_model.h5"))
-EMOTION_MODEL = load_model(os.path.join(MODELS_DIR, "trained_model","dog_emotion_model.h5"))
-AGE_MODEL     = load_model(os.path.join(MODELS_DIR, "trained_model","dog_age_model.h5"))
-DISEASE_MODEL = load_model(os.path.join(MODELS_DIR, "trained_model","dog_skin_disease_model.h5"))
+SCAN_MODEL_PATHS = {
+    "breed": os.path.join(MODELS_DIR, "trained_model", "dog_breed_model.h5"),
+    "emotion": os.path.join(MODELS_DIR, "trained_model", "dog_emotion_model.h5"),
+    "age": os.path.join(MODELS_DIR, "trained_model", "dog_age_model.h5"),
+    "disease": os.path.join(MODELS_DIR, "trained_model", "dog_skin_disease_model.h5"),
+}
+EAGER_LOAD_SCAN_MODELS = _get_env_bool("EAGER_LOAD_SCAN_MODELS", False)
+_SCAN_MODELS = {name: None for name in SCAN_MODEL_PATHS}
+_SCAN_MODELS_LOCK = threading.RLock()
 
-_dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
-for _m in [BREED_MODEL, EMOTION_MODEL, AGE_MODEL, DISEASE_MODEL]:
-    _m.predict(_dummy, verbose=0)
-log.info("All models loaded and warmed up")
+
+def _warm_model(model):
+    input_shape = model.input_shape
+    if isinstance(input_shape, list) and input_shape:
+        input_shape = input_shape[0]
+    h = int(input_shape[1] or 224)
+    w = int(input_shape[2] or 224)
+    c = int(input_shape[3] or 3)
+    dummy = np.zeros((1, h, w, c), dtype=np.float32)
+    model.predict(dummy, verbose=0)
+
+
+def _get_scan_model(name: str):
+    model = _SCAN_MODELS.get(name)
+    if model is not None:
+        return model
+
+    with _SCAN_MODELS_LOCK:
+        model = _SCAN_MODELS.get(name)
+        if model is not None:
+            return model
+
+        model_path = SCAN_MODEL_PATHS[name]
+        log.info("Loading scan model '%s' from %s", name, model_path)
+        model = load_model(model_path)
+        _warm_model(model)
+        _SCAN_MODELS[name] = model
+        log.info("Scan model '%s' loaded and warmed", name)
+        return model
+
+
+def _scan_models_status():
+    loaded = {k: (v is not None) for k, v in _SCAN_MODELS.items()}
+    return {
+        "loaded_count": int(sum(1 for x in loaded.values() if x)),
+        "loaded": loaded,
+        "expected_count": len(_SCAN_MODELS),
+        "eager_load_enabled": EAGER_LOAD_SCAN_MODELS,
+    }
+
+
+if EAGER_LOAD_SCAN_MODELS:
+    log.info("EAGER_LOAD_SCAN_MODELS=true; loading all scan models at startup")
+    for _name in SCAN_MODEL_PATHS:
+        _get_scan_model(_name)
+else:
+    log.info("EAGER_LOAD_SCAN_MODELS=false; scan models will load on first use")
+
+# Assistant RAG config
+ASSISTANT_INDEX_DIR = os.path.join(MODELS_DIR, "assistant_index")
+ASSISTANT_BREEDS_JSON = os.path.join(BASE_DIR, "frontend", "public", "image", "complete_dog_breeds.json")
+ASSISTANT_SYSTEM_GUIDE = os.path.join(BASE_DIR, "backend", "knowledge", "system_guide.md")
+ASSISTANT_MODEL_NAME = os.getenv("ASSISTANT_MODEL_NAME", "llama3.2-lite") # MODEL
+ASSISTANT_EMBED_MODEL_NAME = os.getenv("ASSISTANT_EMBED_MODEL_NAME", "BAAI/bge-small-en-v1.5")
+ASSISTANT_TOP_K = max(2, int(os.getenv("ASSISTANT_TOP_K", "2")))
+ASSISTANT_CONTEXT_WINDOW = _get_env_int("ASSISTANT_CONTEXT_WINDOW", 2048, 256)
+ASSISTANT_MAX_OUTPUT_TOKENS = _get_env_int("ASSISTANT_MAX_OUTPUT_TOKENS", 256, 16)
+ASSISTANT_KEEP_ALIVE = os.getenv("ASSISTANT_KEEP_ALIVE", "30s").strip() or "30s"
+ASSISTANT_HISTORY_TURNS = _get_env_int("ASSISTANT_HISTORY_TURNS", 6, 1)
+ASSISTANT_HISTORY_CHARS = _get_env_int("ASSISTANT_HISTORY_CHARS", 500, 64)
+ASSISTANT_SCAN_CONTEXT_CHARS = _get_env_int("ASSISTANT_SCAN_CONTEXT_CHARS", 3000, 256)
+
+ASSISTANT_QUERY_ENGINE = None
+ASSISTANT_INIT_ERROR = None
+
+
+def _build_assistant_docs():
+    from llama_index.core import Document
+
+    docs = []
+
+    with open(ASSISTANT_BREEDS_JSON, "r", encoding="utf-8") as f:
+        breeds = json.load(f)
+
+    for dog in breeds:
+        text = f"""
+        Breed: {dog.get('display_name', 'Unknown')}
+        Size: {dog.get('size', 'Unknown')}
+        Description: {dog.get('description', '')}
+        Origin: {(dog.get('characteristics') or {}).get('origin', 'Unknown')}
+        Breed Group: {(dog.get('characteristics') or {}).get('breed_group', 'Unknown')}
+        Lifespan: {(dog.get('characteristics') or {}).get('lifespan_min', '?')}-{(dog.get('characteristics') or {}).get('lifespan_max', '?')} years
+        Temperament: {', '.join(dog.get('temperament') or [])}
+        Health Considerations: {dog.get('health_considerations', '')}
+        Key Health Tips: {dog.get('key_health_tips', '')}
+        Physical Traits:
+          Snout: {(dog.get('physical_traits') or {}).get('snout', 'Unknown')}
+          Ears: {(dog.get('physical_traits') or {}).get('ears', 'Unknown')}
+          Coat: {(dog.get('physical_traits') or {}).get('coat', 'Unknown')}
+          Tail: {(dog.get('physical_traits') or {}).get('tail', 'Unknown')}
+        Measurements:
+          Height: {(dog.get('measurements') or {}).get('height_min', '?')}-{(dog.get('measurements') or {}).get('height_max', '?')} inches
+          Weight: {(dog.get('measurements') or {}).get('weight_min', '?')}-{(dog.get('measurements') or {}).get('weight_max', '?')} lbs
+        """
+        docs.append(Document(text=text.strip(), metadata={"kind": "breed", "breed": dog.get("display_name", "")}))
+
+    if os.path.exists(ASSISTANT_SYSTEM_GUIDE):
+        with open(ASSISTANT_SYSTEM_GUIDE, "r", encoding="utf-8") as f:
+            docs.append(Document(text=f.read(), metadata={"kind": "system_guide"}))
+
+    return docs
+
+
+def _init_assistant():
+    global ASSISTANT_QUERY_ENGINE
+    global ASSISTANT_INIT_ERROR
+
+    try:
+        from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
+        from llama_index.llms.ollama import Ollama
+        from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+
+        llm = Ollama(
+            model=ASSISTANT_MODEL_NAME,
+            request_timeout=120,
+            context_window=ASSISTANT_CONTEXT_WINDOW,
+            keep_alive=ASSISTANT_KEEP_ALIVE,
+            additional_kwargs={"num_predict": ASSISTANT_MAX_OUTPUT_TOKENS},
+        )
+        embed = HuggingFaceEmbedding(model_name=ASSISTANT_EMBED_MODEL_NAME)
+
+        if os.path.isdir(ASSISTANT_INDEX_DIR) and os.listdir(ASSISTANT_INDEX_DIR):
+            log.info("Loading assistant vector index from disk...")
+            storage = StorageContext.from_defaults(persist_dir=ASSISTANT_INDEX_DIR)
+            index = load_index_from_storage(storage, embed_model=embed)
+        else:
+            log.info("Building assistant vector index from documents...")
+            docs = _build_assistant_docs()
+            if not docs:
+                raise RuntimeError("No assistant documents available for indexing.")
+            index = VectorStoreIndex.from_documents(docs, embed_model=embed)
+            os.makedirs(ASSISTANT_INDEX_DIR, exist_ok=True)
+            index.storage_context.persist(persist_dir=ASSISTANT_INDEX_DIR)
+
+        ASSISTANT_QUERY_ENGINE = index.as_query_engine(
+            llm=llm,
+            similarity_top_k=ASSISTANT_TOP_K
+        )
+        ASSISTANT_INIT_ERROR = None
+        log.info("Assistant RAG engine ready")
+    except Exception as e:
+        ASSISTANT_QUERY_ENGINE = None
+        ASSISTANT_INIT_ERROR = str(e)
+        log.exception("Assistant RAG initialization failed")
+
+
+def _format_history(history: list[dict[str, Any]]) -> str:
+    lines = []
+    for item in history[-ASSISTANT_HISTORY_TURNS:]:
+        role = str(item.get("role", "")).strip().lower()
+        content = _clip_text(item.get("content", ""), ASSISTANT_HISTORY_CHARS)
+        if not content:
+            continue
+        if role == "assistant":
+            lines.append(f"Assistant: {content}")
+        else:
+            lines.append(f"User: {content}")
+    return "\n".join(lines)
+
+
+def _compact_scan_context(scan_context: Any) -> str:
+    if not isinstance(scan_context, dict):
+        return ""
+
+    compact: dict[str, Any] = {}
+    scan_type = str(scan_context.get("scan_type", "")).strip().lower()
+    if scan_type in {"breed", "disease"}:
+        compact["scan_type"] = scan_type
+
+    if "uploaded_image_url" in scan_context:
+        compact["uploaded_image_url"] = _clip_text(scan_context.get("uploaded_image_url"), 512)
+
+    if isinstance(scan_context.get("emotion"), dict):
+        emotion = scan_context["emotion"]
+        compact["emotion"] = {
+            "class_name": _clip_text(emotion.get("class_name", ""), 80),
+            "display_name": _clip_text(emotion.get("display_name", ""), 80),
+            "confidence": emotion.get("confidence"),
+        }
+
+    if isinstance(scan_context.get("age"), dict):
+        age = scan_context["age"]
+        compact["age"] = {
+            "class_name": _clip_text(age.get("class_name", ""), 80),
+            "display_name": _clip_text(age.get("display_name", ""), 80),
+            "confidence": age.get("confidence"),
+        }
+
+    top_breeds = scan_context.get("top_breeds")
+    if isinstance(top_breeds, list) and top_breeds:
+        compact["top_breeds"] = []
+        for item in top_breeds[:5]:
+            if not isinstance(item, dict):
+                continue
+            compact["top_breeds"].append({
+                "rank": item.get("rank"),
+                "breed_id": item.get("breed_id"),
+                "class_name": _clip_text(item.get("class_name", ""), 100),
+                "display_name": _clip_text(item.get("display_name", ""), 100),
+                "confidence": item.get("confidence"),
+                "mix_share": item.get("mix_share"),
+            })
+
+    top_diseases = scan_context.get("top_diseases")
+    if isinstance(top_diseases, list) and top_diseases:
+        compact["top_diseases"] = []
+        for item in top_diseases[:5]:
+            if not isinstance(item, dict):
+                continue
+            compact["top_diseases"].append({
+                "rank": item.get("rank"),
+                "class_name": _clip_text(item.get("class_name", ""), 100),
+                "display_name": _clip_text(item.get("display_name", ""), 100),
+                "confidence": item.get("confidence"),
+                "severity": _clip_text(item.get("severity", ""), 40),
+                "description": _clip_text(item.get("description", ""), 220),
+                "treatment": _clip_text(item.get("treatment", ""), 220),
+            })
+
+    text = json.dumps(compact, ensure_ascii=False, separators=(",", ":"))
+    return _clip_text(text, ASSISTANT_SCAN_CONTEXT_CHARS)
+
+
+def _build_assistant_prompt(message: str, thread_type: str, scan_context: Any, history: list[dict[str, Any]]) -> str:
+    history_text = _format_history(history)
+    context_text = ""
+    if thread_type == "scan" and isinstance(scan_context, dict):
+        context_text = _compact_scan_context(scan_context)
+
+    return f"""
+You are Casper, the DogScan AI assistant.
+
+Primary responsibilities:
+- Explain dog scan results in clear and practical language.
+- Explain breed traits, care, and behavior guidance using DogScan knowledge first.
+- Explain DogScan AI app navigation, features, and tutorials when asked.
+
+Safety rules:
+- Do not provide veterinary diagnosis.
+- For disease/health concerns, clearly recommend consulting a licensed veterinarian.
+- If user asks for harmful/offensive content, refuse politely and redirect to safe dog-care help.
+
+Language style:
+- Default to English.
+- If the user speaks another language, reply in that language.
+- Keep answers concise and easy for first-time dog owners.
+
+Conversation memory:
+- Use the provided chat history for continuity.
+- If this is a scan thread, prioritize the provided scan context.
+
+Scan context (if available):
+{context_text or "N/A"}
+
+Chat history:
+{history_text or "N/A"}
+
+User message:
+{message}
+""".strip()
+
+
+def generate_assistant_reply(message: str, thread_type: str, scan_context: Any, history: list[dict[str, Any]]) -> str:
+    if ASSISTANT_QUERY_ENGINE is None:
+        raise RuntimeError(ASSISTANT_INIT_ERROR or "Assistant engine not initialized.")
+
+    prompt = _build_assistant_prompt(message, thread_type, scan_context, history)
+    response = ASSISTANT_QUERY_ENGINE.query(prompt)
+    text = str(response).strip()
+    if not text:
+        raise RuntimeError("Assistant returned an empty response.")
+    return text
+
+
+_init_assistant()
 
 # TTA config — mirrors your test script exactly
 TTA_ROTATIONS  = (-15, -7, 0, 7, 15)
@@ -215,7 +516,16 @@ def analyze_breed(preds):
 
 @app.get("/health")
 def health():
-    return jsonify({"status": "ok", "models_loaded": 4})
+    scan_status = _scan_models_status()
+    return jsonify({
+        "status": "ok",
+        "models_loaded": scan_status["loaded_count"],
+        "models_expected": scan_status["expected_count"],
+        "scan_models": scan_status["loaded"],
+        "eager_load_scan_models": scan_status["eager_load_enabled"],
+        "assistant_ready": ASSISTANT_QUERY_ENGINE is not None,
+        "assistant_error": ASSISTANT_INIT_ERROR,
+    })
 
 
 @app.post("/predict/breed")
@@ -228,9 +538,13 @@ def predict_breed():
     except Exception as e:
         return jsonify({"error": f"Image decode failed: {e}"}), 422
     try:
-        breed_data = analyze_breed(predict_with_tta(pil_img, BREED_MODEL))
-        emotion    = top1_result(predict_simple(pil_img, EMOTION_MODEL), EMOTION_LABELS)
-        age        = top1_result(predict_simple(pil_img, AGE_MODEL),     AGE_LABELS)
+        breed_model = _get_scan_model("breed")
+        emotion_model = _get_scan_model("emotion")
+        age_model = _get_scan_model("age")
+
+        breed_data = analyze_breed(predict_with_tta(pil_img, breed_model))
+        emotion = top1_result(predict_simple(pil_img, emotion_model), EMOTION_LABELS)
+        age = top1_result(predict_simple(pil_img, age_model), AGE_LABELS)
     except Exception as e:
         log.exception("Inference error (breed)")
         return jsonify({"error": f"Inference failed: {e}"}), 500
@@ -255,7 +569,8 @@ def predict_disease():
     except Exception as e:
         return jsonify({"error": f"Image decode failed: {e}"}), 422
     try:
-        preds   = predict_simple(pil_img, DISEASE_MODEL)
+        disease_model = _get_scan_model("disease")
+        preds = predict_simple(pil_img, disease_model)
         top_idx = np.argsort(preds)[::-1][:3]
         diseases = []
         for i, idx in enumerate(top_idx):
@@ -276,6 +591,31 @@ def predict_disease():
         return jsonify({"error": f"Inference failed: {e}"}), 500
 
     return jsonify({"scan_type": "disease", "top_diseases": diseases})
+
+
+@app.post("/assistant/chat")
+def assistant_chat():
+    body = request.get_json(force=True, silent=True) or {}
+
+    message = str(body.get("message", "")).strip()
+    if not message:
+        return jsonify({"error": "message is required"}), 400
+
+    thread_type = str(body.get("thread_type", "general")).strip().lower()
+    if thread_type not in {"general", "scan"}:
+        return jsonify({"error": "thread_type must be 'general' or 'scan'"}), 400
+
+    scan_context = body.get("scan_context")
+    history = body.get("history")
+    if not isinstance(history, list):
+        history = []
+    history = [item for item in history if isinstance(item, dict)]
+
+    try:
+        reply = generate_assistant_reply(message, thread_type, scan_context, history)
+        return jsonify({"reply": reply})
+    except Exception as e:
+        return jsonify({"error": f"Assistant unavailable: {e}"}), 503
 
 
 if __name__ == "__main__":

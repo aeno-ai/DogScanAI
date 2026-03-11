@@ -16,9 +16,12 @@ import DashboardPage from "./pages/Dashboard";
 import DogLibrary from "./pages/DogLibrary"
 import HistoryPage from "./pages/History";
 import ProfilePage from "./pages/ProfilePage";
+import AssistantPage from "./pages/AssistantPage";
+import ContributorsPage from "./pages/ContributorsPage";
 import AdminOverviewPage from "./pages/admin/AdminOverviewPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminContributionsPage from "./pages/admin/AdminContributionsPage";
+import AdminContributorsPage from "./pages/admin/AdminContributorsPage";
 
 function App() {
   return (
@@ -31,6 +34,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/doglibrary" element={<DogLibrary/>}/>
+            <Route path="/contributors" element={<ContributorsPage />} />
             
 
             {/* Protected routes */}
@@ -44,6 +48,14 @@ function App() {
             />
             <Route path="/scan" element={<Navigate to="/dashboard?scan=1" replace />} />
             <Route path="/scanpage" element={<Navigate to="/dashboard?scan=1" replace />} />
+            <Route
+              path="/assistant"
+              element={
+                <ProtectedRoute>
+                  <AssistantPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/doglibrary"
               element={
@@ -80,6 +92,7 @@ function App() {
               <Route path="overview" element={<AdminOverviewPage />} />
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="contributions" element={<AdminContributionsPage />} />
+              <Route path="contributors" element={<AdminContributorsPage />} />
             </Route>
             {/* Catch-all redirect */}
             <Route path="*" element={<NotFound />} />

@@ -1,5 +1,5 @@
 import { NavLink, Link } from "react-router-dom";
-import { Home, BookOpen, Clock, User, X, LogOut, Menu, ShieldCheck } from "lucide-react";
+import { Home, BookOpen, Clock, User, X, LogOut, Menu, ShieldCheck, MessageCircle, Trophy } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const Sidebar = ({ open, onOpen, onClose, onLogout }) => {
@@ -7,7 +7,9 @@ const Sidebar = ({ open, onOpen, onClose, onLogout }) => {
   const isDesktop = () => window.matchMedia("(min-width: 768px)").matches;
   const navItems = [
     { path: "/dashboard", label: "Home", icon: Home },
+    { path: "/assistant", label: "Assistant", icon: MessageCircle },
     { path: "/doglibrary", label: "Library", icon: BookOpen },
+    { path: "/contributors", label: "Contributors", icon: Trophy },
     { path: "/history", label: "History", icon: Clock },
     { path: "/profile", label: "Profile", icon: User },
     ...(user?.is_admin

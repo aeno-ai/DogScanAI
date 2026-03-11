@@ -28,7 +28,7 @@ const TopNav = ({ centerContent }) => {
         onClose={closeUserSidebar}
         onLogout={handleLogout}
       />
-      <header className="bg-white border-b border-slate-200 px-6 py-4 shrink-0">
+      <header className="bg-white border-b border-slate-200 px-6 py-4 shrink-0 flex-wrap">
         <div className="flex items-center justify-between gap-4">
           {/* Left: hamburger */}
           <button

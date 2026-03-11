@@ -19,17 +19,16 @@ import { buildBreedImagePath } from "../utils/breedImage";
 const FILTER_STATUSES = [
   { value: "all", label: "All Scans" },
   { value: "completed", label: "Completed" },
-  { value: "low_confidence", label: "Low Confidence" },
-  { value: "training_pending", label: "Training Pending" },
-  { value: "training_approved", label: "Training Approved" },
-  { value: "training_rejected", label: "Training Rejected" },
+  { value: "high_confidence", label: "High Confidence" },
+  { value: "medium_confidence", label: "Medium Confidence" },
+  { value: "low_confidence", label: "Low Confidence" }
 ];
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest First" },
   { value: "oldest", label: "Oldest First" },
-  { value: "high_confidence", label: "Highest Confidence" },
-  { value: "low_confidence", label: "Lowest Confidence" },
+  { value: "high_confidence", label: "High Confidence - Low Confidence" },
+  { value: "low_confidence", label: "Low Confidence - High Confidence" },
 ];
 
 const STATS_CONFIG = [
@@ -206,6 +205,8 @@ const HistoryPage = () => {
   const filteredScans = useMemo(() => {
     const filtered = scans.filter((scan) => {
       if (filterStatus === "all") return true;
+      if (filterStatus === "high_confidence") return getTop1Confidence(scan) >= 70;
+      if (filterStatus === "medium_confidence") return getTop1Confidence(scan) >= 40 && getTop1Confidence(scan) < 70;
       if (filterStatus === "low_confidence") return getTop1Confidence(scan) < 40;
       if (filterStatus === "training_pending") return scan.training_status === "pending";
       if (filterStatus === "training_approved") return scan.training_status === "approved";

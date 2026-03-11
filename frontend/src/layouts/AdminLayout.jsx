@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Users,
   Database,
+  Trophy,
   LogOut,
   ShieldCheck,
 } from "lucide-react";
@@ -15,6 +16,7 @@ const navItems = [
   { to: "/admin/overview", label: "Overview", icon: LayoutDashboard },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/contributions", label: "Contributions", icon: Database },
+  { to: "/admin/contributors", label: "Contributors", icon: Trophy },
 ];
 
 const AdminLayout = () => {

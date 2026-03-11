@@ -12,6 +12,8 @@ const adminUsersRoutes = require("./routes/admin.users");
 const adminContributionsRoutes = require("./routes/admin.contributions");
 const adminDashboardRoutes = require("./routes/admin.dashboard");
 const profileRoutes = require("./routes/profile");
+const assistantRoutes = require("./routes/assistant");
+const contributorsRoutes = require("./routes/contributors");
 
 const app = express();
 
@@ -20,18 +22,28 @@ const app = express();
 // ============================================
 
 // CORS configuration for both web and mobile
+const corsAllowList = new Set([
+  "http://localhost:5000", // React web app (old port)
+  "http://localhost:5173", // React web app (Vite dev port)
+  "http://localhost:5174", // React web app (Vite dev port)
+  // Android emulator can access localhost via 10.0.2.2
+  // Add your computer's local IP for real Android device
+  "http://10.0.2.2:3000",
+  "http://10.0.2.2:5173",
+  "http://10.0.2.2:5174",
+]);
+const localhostOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/i;
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5000", // React web app (old port)
-      "http://localhost:5173", // React web app (Vite dev port)
-      "http://localhost:5174", // React web app (Vite dev port)
-      // Android emulator can access localhost via 10.0.2.2
-      // Add your computer's local IP for real Android device
-      "http://10.0.2.2:3000",
-      "http://10.0.2.2:5173",
-      "http://10.0.2.2:5174",
-    ],
+    origin: (origin, cb) => {
+      // Allow server-to-server or native app requests without Origin header.
+      if (!origin) return cb(null, true);
+      if (corsAllowList.has(origin) || localhostOriginPattern.test(origin)) {
+        return cb(null, true);
+      }
+      return cb(new Error("Not allowed by CORS"));
+    },
     credentials: true, // Allow cookies
   }),
 );
@@ -53,6 +65,8 @@ app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/admin/contributions", adminContributionsRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/assistant", assistantRoutes);
+app.use("/api/contributors", contributorsRoutes);
 
 
 // Health check endpoint

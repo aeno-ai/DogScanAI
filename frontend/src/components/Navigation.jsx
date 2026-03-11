@@ -60,6 +60,7 @@ const Navigation = () => {
               {link.label}
             </a>
           ))}
+          
         </div>
 
         {/* Right Section: Desktop Auth / CTA */}
@@ -159,6 +160,7 @@ const Navigation = () => {
               {link.label}
             </a>
           ))}
+          
 
           <hr className="my-4 border-gray-200" />
 

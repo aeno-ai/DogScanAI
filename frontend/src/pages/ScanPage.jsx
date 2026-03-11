@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { AlertTriangle, Camera, Loader2, PawPrint, Stethoscope, Upload, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BreedResultCard from "../components/BreedResultCard";
 import DiseaseResultCard from "../components/DiseaseResultCard";
+import AssistantChatPanel from "../components/AssistantChatPanel";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
@@ -41,6 +42,43 @@ function EmotionAgeBadges({ emotion, age, light = false }) {
       <Badge title="Estimated Age:" label={age?.class_name} confidence={age?.confidence} />
     </div>
   );
+}
+
+function buildAssistantScanContext(result) {
+  if (!result || typeof result !== "object") return null;
+
+  const scanType = result.scan_type === "disease" ? "disease" : "breed";
+
+  if (scanType === "breed") {
+    return {
+      scan_type: "breed",
+      uploaded_image_url: result?.uploaded_image_url || null,
+      emotion: result?.emotion ?? null,
+      age: result?.age ?? null,
+      top_breeds: (Array.isArray(result?.top_breeds) ? result.top_breeds : []).map((breed) => ({
+        rank: breed?.rank ?? null,
+        breed_id: breed?.breed_id ?? null,
+        class_name: breed?.class_name ?? "",
+        display_name: breed?.display_name ?? "",
+        confidence: Number(breed?.confidence ?? 0),
+        mix_share: Number(breed?.mix_share ?? 0),
+      })),
+    };
+  }
+
+  return {
+    scan_type: "disease",
+    uploaded_image_url: result?.uploaded_image_url || null,
+    top_diseases: (Array.isArray(result?.top_diseases) ? result.top_diseases : []).map((disease) => ({
+      rank: disease?.rank ?? null,
+      class_name: disease?.class_name ?? "",
+      display_name: disease?.display_name ?? "",
+      confidence: Number(disease?.confidence ?? 0),
+      severity: disease?.severity ?? "",
+      description: disease?.description ?? "",
+      treatment: disease?.treatment ?? "",
+    })),
+  };
 }
 
 export function ScanWorkspace({ inModal = false, onClose = null, publicMode = false }) {
@@ -403,6 +441,10 @@ export function ScanWorkspace({ inModal = false, onClose = null, publicMode = fa
 
   const currentMode = SCAN_MODES.find((m) => m.id === mode);
   const isLight = inModal;
+  const assistantScanContext = useMemo(
+    () => buildAssistantScanContext(result),
+    [result]
+  );
 
   return (
     <div className={inModal ? "text-gray-900" : "min-h-screen bg-[#0f0f1a] text-white p-4 md:p-8 max-w-2xl mx-auto"}>
@@ -750,6 +792,15 @@ export function ScanWorkspace({ inModal = false, onClose = null, publicMode = fa
                 </div>
                 {!publicMode && renderSaveButton()}
               </div>
+            )}
+
+            {!publicMode && assistantScanContext && (
+              <AssistantChatPanel
+                mode="scan"
+                scanContext={assistantScanContext}
+                title="Ask Casper About This Scan"
+                subtitle="Ask follow-up questions about your current scan result."
+              />
             )}
           </div>
         )}

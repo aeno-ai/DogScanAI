@@ -35,6 +35,9 @@ const DogLibrary = () => {
     name: "",
   });
 
+  // New state for mobile filter panel
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   const filterConfig = {
     sizes: [
       { value: "all", label: "All Sizes" },
@@ -665,64 +668,144 @@ const DogLibrary = () => {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [imageViewer.open]);
 
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedSize("all");
+    setSelectedTemperament("all");
+    setMobileFiltersOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <TopNav
         centerContent={
-          <div className="flex items-center justify-center gap-2">
-            <div className="relative">
+          <div className="flex items-center justify-center gap-2 w-full">
+            {/* Search - full width on mobile, fixed width on sm+ */}
+            <div className="relative flex-1 sm:flex-none">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search breed..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48"
+                className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-48"
               />
             </div>
 
-            <select
-              value={selectedSize}
-              onChange={(e) => setSelectedSize(e.target.value)}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {filterConfig.sizes.map((size) => (
-                <option key={size.value} value={size.value}>
-                  {size.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={selectedTemperament}
-              onChange={(e) => setSelectedTemperament(e.target.value)}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {filterConfig.temperaments.map((temp) => (
-                <option key={temp.value} value={temp.value}>
-                  {temp.label}
-                </option>
-              ))}
-            </select>
-
-            {(searchTerm ||
-              selectedSize !== "all" ||
-              selectedTemperament !== "all") && (
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setSelectedSize("all");
-                  setSelectedTemperament("all");
-                }}
-                className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
+            {/* Desktop filters (hidden on small screens) */}
+            <div className="hidden sm:flex items-center gap-2">
+              <select
+                value={selectedSize}
+                onChange={(e) => setSelectedSize(e.target.value)}
+                className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                Clear
+                {filterConfig.sizes.map((size) => (
+                  <option key={size.value} value={size.value}>
+                    {size.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={selectedTemperament}
+                onChange={(e) => setSelectedTemperament(e.target.value)}
+                className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {filterConfig.temperaments.map((temp) => (
+                  <option key={temp.value} value={temp.value}>
+                    {temp.label}
+                  </option>
+                ))}
+              </select>
+
+              {(searchTerm ||
+                selectedSize !== "all" ||
+                selectedTemperament !== "all") && (
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Mobile Filter Button */}
+            <div className="sm:hidden">
+              <button
+                onClick={() => setMobileFiltersOpen((s) => !s)}
+                aria-expanded={mobileFiltersOpen}
+                aria-controls="mobile-filters-panel"
+                className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg bg-white hover:bg-slate-50"
+                title="Filters"
+              >
+                <Filter className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium">Filters</span>
               </button>
-            )}
-           
+            </div>
           </div>
         }
       />
+
+      {/* Mobile filter panel (collapsible) */}
+      {mobileFiltersOpen && (
+        <div
+          id="mobile-filters-panel"
+          className="sm:hidden bg-white border-t border-b border-slate-100 px-4 py-3 shadow-sm"
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="sr-only">Size</label>
+              <select
+                value={selectedSize}
+                onChange={(e) => setSelectedSize(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {filterConfig.sizes.map((size) => (
+                  <option key={size.value} value={size.value}>
+                    {size.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="sr-only">Temperament</label>
+              <select
+                value={selectedTemperament}
+                onChange={(e) => setSelectedTemperament(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {filterConfig.temperaments.map((temp) => (
+                  <option key={temp.value} value={temp.value}>
+                    {temp.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => setMobileFiltersOpen(false)}
+                className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm"
+              >
+                Done
+              </button>
+
+              {(searchTerm ||
+                selectedSize !== "all" ||
+                selectedTemperament !== "all") && (
+                <button
+                  onClick={clearFilters}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
         {/* Header */}
@@ -736,7 +819,6 @@ const DogLibrary = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          
           {/* Main Content */}
           <div className="flex-1">
             {/* Results Count */}
@@ -910,11 +992,7 @@ const DogLibrary = () => {
                   Try adjusting your filters or search term
                 </p>
                 <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSelectedSize("all");
-                    setSelectedTemperament("all");
-                  }}
+                  onClick={clearFilters}
                   className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
                   Clear Filters
