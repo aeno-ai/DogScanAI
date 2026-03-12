@@ -25,13 +25,14 @@ const galleryItems = [
 
 const GallerySection = () => {
   return (
-    <section id="gallery" className="py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="gallery" className="relative section-pad bg-gray-50">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.1),_transparent_60%)]" />
+      <div className="page-container relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 animate-fade-up">
             See <span className="text-blue-600">DogScanAI</span> in Action
           </h2>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          <p className="text-slate-600 text-lg max-w-2xl mx-auto animate-fade-up-delayed">
             Real examples of our AI-powered breed identification and analysis.
           </p>
         </div>
@@ -40,9 +41,9 @@ const GallerySection = () => {
           {galleryItems.map((item, index) => (
             <div
               key={index}
-              className="group relative rounded-2xl overflow-hidden bg-white shadow-lg hover:shadow-xl transition-all duration-300"
+              className="group relative rounded-2xl overflow-hidden bg-white shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-up"
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
-              {/* Image */}
               <div className="aspect-square overflow-hidden">
                 <img
                   src={item.image}
@@ -51,17 +52,14 @@ const GallerySection = () => {
                 />
               </div>
 
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-linear-to-t from-gray-900/90 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-slate-900/90 via-transparent to-transparent" />
 
-              {/* Confidence Badge - Custom replacement for Badge component */}
               <div className="absolute top-4 right-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-white/90 text-gray-900 backdrop-blur-sm">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-white/90 text-slate-900 backdrop-blur-sm">
                   {item.confidence} Match
                 </span>
               </div>
 
-              {/* Content */}
               <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
                 <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
                   {item.breed}
@@ -78,7 +76,6 @@ const GallerySection = () => {
                 </div>
               </div>
 
-              {/* Scanning effect on hover */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                 <div className="absolute inset-0 bg-blue-600/10" />
                 <div className="absolute left-0 right-0 h-1 bg-blue-600/50 animate-pulse top-1/2" />

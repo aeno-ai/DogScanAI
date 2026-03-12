@@ -23,25 +23,24 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section id="how-it-works" className="py-24 bg-background">
-      <div className="container mx-auto px-4">
+    <section id="how-it-works" className="relative section-pad bg-background">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_left,_rgba(37,99,235,0.08),_transparent_60%)]" />
+      <div className="page-container relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 animate-fade-up">
             How <span className="text-primary">DogScanAI</span> Works
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto animate-fade-up-delayed">
             Three simple steps to discover everything about your beloved companion.
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 relative">
-          {/* Connecting line for desktop */}
-          <div className="hidden md:block absolute top-24 left-1/4 right-1/4 h-0.5 bg-linear-to-r from-primary/50 via-primary to-primary/50" />
+          <div className="hidden md:block absolute top-24 left-1/4 right-1/4 h-0.5 bg-linear-to-r from-primary/40 via-primary to-primary/40" />
 
           {steps.map((step, index) => (
-            <div key={index} className="relative">
-              <div className="flex flex-col items-center text-center">
-                {/* Step number circle */}
+            <div key={index} className="relative animate-fade-up" style={{ animationDelay: `${index * 0.1}s` }}>
+              <div className="flex flex-col items-center text-center bg-white/70 border border-slate-200 rounded-3xl px-6 py-8 shadow-sm">
                 <div className="relative z-10 mb-6">
                   <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
                     <step.icon className="w-10 h-10 text-primary-foreground" />
@@ -51,7 +50,6 @@ const HowItWorksSection = () => {
                   </div>
                 </div>
 
-                {/* Content */}
                 <h3 className="text-xl font-semibold text-foreground mb-3">
                   {step.title}
                 </h3>
@@ -60,7 +58,6 @@ const HowItWorksSection = () => {
                 </p>
               </div>
 
-              {/* Arrow between steps on mobile */}
               {index < steps.length - 1 && (
                 <div className="md:hidden flex justify-center my-6">
                   <ArrowRight className="w-6 h-6 text-primary rotate-90" />

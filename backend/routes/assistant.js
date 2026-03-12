@@ -7,17 +7,17 @@ const db = require("../config/database");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
-const FLASK_URL = process.env.FLASK_URL || "http://localhost:5001";
+const FLASK_URL = process.env.FLASK_API_URL;
 const DB_UNAVAILABLE_CODES = new Set(["ECONNREFUSED", "ETIMEDOUT", "57P01", "57P02", "57P03"]);
 
 const MAX_MESSAGE_CHARS = 4000;
 const MAX_HISTORY_MESSAGES = Math.max(
   1,
-  Number.parseInt(process.env.ASSISTANT_HISTORY_TURNS || "6", 10) || 6
+  Number.parseInt("6", 10) || 6
 );
 const MAX_HISTORY_CHARS = Math.max(
   64,
-  Number.parseInt(process.env.ASSISTANT_HISTORY_CHARS || "500", 10) || 500
+  Number.parseInt( "500", 10) || 500
 );
 
 router.use(auth);

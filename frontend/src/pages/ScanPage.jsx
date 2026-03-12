@@ -32,7 +32,7 @@ function EmotionAgeBadges({ emotion, age, light = false }) {
     <div className={`flex-1 rounded-xl p-3 text-center border ${light ? "bg-white border-gray-200" : "bg-[#1a1a2e] border-gray-700"}`}>
       <div className={`text-xs mb-1 ${light ? "text-gray-500" : "text-gray-400"}`}>{title}</div>
       <div className={`font-semibold capitalize ${light ? "text-gray-900" : "text-white"}`}>{label ?? "-"}</div>
-      {confidence != null && <div className={`text-xs mt-0.5 ${light ? "text-blue-600" : "text-indigo-400"}`}>{confidence}%</div>}
+      {confidence != null && <div className={`text-xs mt-0.5 ${light ? "text-blue-600" : "text-blue-400"}`}>{confidence}%</div>}
     </div>
   );
 
@@ -478,11 +478,11 @@ export function ScanWorkspace({ inModal = false, onClose = null, publicMode = fa
                   mode === m.id
                     ? publicMode
                       ? "bg-blue-600 border-blue-500 text-white shadow-lg"
-                      : "bg-gradient-to-r from-blue-600 to-indigo-600 border-indigo-500 text-white shadow-lg"
+                      : "bg-gradient-to-r from-blue-600 to-blue-500 border-blue-500 text-white shadow-lg"
                     : isLight
                       ? "bg-white border-gray-200 text-gray-600 hover:border-blue-400"
                       : `bg-[#1a1a2e] border-gray-700 text-gray-400 ${
-                          publicMode ? "hover:border-blue-500" : "hover:border-indigo-500"
+                          publicMode ? "hover:border-blue-500" : "hover:border-blue-500"
                         }`
                 }`}
               >
@@ -519,7 +519,7 @@ export function ScanWorkspace({ inModal = false, onClose = null, publicMode = fa
           />
           <div
             className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${
-              isLight ? "border-gray-300 hover:border-blue-500 bg-white" : "border-gray-600 hover:border-indigo-500"
+              isLight ? "border-gray-300 hover:border-blue-500 bg-white" : "border-gray-600 hover:border-blue-500"
             }`}
             onClick={() => !preview && fileInputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
@@ -546,11 +546,11 @@ export function ScanWorkspace({ inModal = false, onClose = null, publicMode = fa
             ) : (
               <div className="py-8 select-none">
                 <div className="flex justify-center mb-3">
-                  <Upload className={`w-12 h-12 ${publicMode ? "text-blue-500" : "text-indigo-400"}`} />
+                  <Upload className={`w-12 h-12 ${publicMode ? "text-blue-500" : "text-blue-400"}`} />
                 </div>
                 <p className="text-gray-400">
                   Drag and drop or{" "}
-                  <span className={publicMode ? "text-blue-600" : isLight ? "text-blue-600" : "text-indigo-400"}>
+                  <span className={publicMode ? "text-blue-600" : isLight ? "text-blue-600" : "text-blue-400"}>
                     click to upload
                   </span>
                 </p>
@@ -564,7 +564,7 @@ export function ScanWorkspace({ inModal = false, onClose = null, publicMode = fa
           onClick={handleScan}
           disabled={!file || loading || (publicMode && publicUsage?.demo_remaining === 0)}
           className={`w-full py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-white transition-all text-lg mb-6 inline-flex items-center justify-center gap-2 ${
-            publicMode ? "bg-blue-600 hover:bg-blue-500" : "bg-indigo-600 hover:bg-indigo-500"
+            publicMode ? "bg-blue-600 hover:bg-blue-500" : "bg-blue-600 hover:bg-blue-500"
           }`}
         >
           {loading ? (
@@ -734,7 +734,7 @@ export function ScanWorkspace({ inModal = false, onClose = null, publicMode = fa
                                       <span
                                         key={temp}
                                         className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                          isLight ? "bg-blue-100 text-blue-700" : "bg-indigo-900/40 text-indigo-300"
+                                          isLight ? "bg-blue-100 text-blue-700" : "bg-blue-900/40 text-blue-300"
                                         }`}
                                       >
                                         {temp}
@@ -764,7 +764,7 @@ export function ScanWorkspace({ inModal = false, onClose = null, publicMode = fa
                                 <div className="pt-1">
                                   <button
                                     onClick={() => window.location.assign(`/breeds/${breed.breed_id}`)}
-                                    className={`text-sm font-medium ${isLight ? "text-blue-600 hover:text-blue-700" : "text-indigo-300 hover:text-indigo-200"}`}
+                                    className={`text-sm font-medium ${isLight ? "text-blue-600 hover:text-blue-700" : "text-blue-300 hover:text-blue-200"}`}
                                   >
                                     View full breed page
                                   </button>

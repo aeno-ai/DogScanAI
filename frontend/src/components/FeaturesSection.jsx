@@ -35,34 +35,39 @@ const features = [
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="features" className="relative section-pad bg-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(37,99,235,0.08),_transparent_60%)]" />
+      <div className="page-container relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 animate-fade-up">
             Powerful Features for
             <span className="text-blue-600"> Pet Parents</span>
           </h2>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Everything you need to understand your furry friend better, all powered by 
+          <p className="text-slate-600 text-lg max-w-2xl mx-auto animate-fade-up-delayed">
+            Everything you need to understand your furry friend better, all powered by
             cutting-edge artificial intelligence.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
-            <div 
+            <div
               key={index}
-              className="group bg-white rounded-2xl border border-gray-200 p-6 hover:border-blue-300 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              className="group relative bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-up"
+              style={{ animationDelay: `${index * 0.08}s` }}
             >
-              <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center mb-5 group-hover:bg-blue-100 transition-colors">
-                <feature.icon className="w-7 h-7 text-blue-600" />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-50/70 via-transparent to-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center mb-5 group-hover:bg-blue-100 transition-colors">
+                  <feature.icon className="w-7 h-7 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-slate-600 leading-relaxed">
+                  {feature.description}
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                {feature.description}
-              </p>
             </div>
           ))}
         </div>

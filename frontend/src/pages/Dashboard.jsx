@@ -185,19 +185,19 @@ const DashboardPage = () => {
       title: "Explore Breeds",
       description: "Learn about different breeds",
       icon: BookOpen,
-      iconClass: "bg-purple-50 text-purple-600",
+      iconClass: "bg-blue-50 text-blue-600",
       onClick: () => navigate("/doglibrary"),
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+    <div className="page-bg">
       <TopNav />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+      <div className="page-container pt-24 pb-12">
         <div className="mb-8">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-8 sm:p-10">
+            <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-500 p-8 sm:p-10">
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Welcome back, {user?.username}!</h1>
@@ -262,7 +262,7 @@ const DashboardPage = () => {
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
                     {user?.username?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -300,7 +300,7 @@ const DashboardPage = () => {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <PawPrint className="w-5 h-5 text-indigo-600" />
+              <PawPrint className="w-5 h-5 text-blue-600" />
               Recent Scans
             </h2>
           </div>
@@ -369,7 +369,7 @@ const DashboardPage = () => {
                             {scan.temperament.slice(0, 2).map((temp) => (
                               <span
                                 key={temp}
-                                className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700"
+                                className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700"
                               >
                                 {temp}
                               </span>
@@ -411,7 +411,7 @@ const DashboardPage = () => {
                 </p>
                 <button
                   onClick={openScanModal}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg font-medium"
                 >
                   <Camera className="w-5 h-5" />
                   Start Your First Scan
@@ -442,7 +442,7 @@ const DashboardPage = () => {
         >
           <div className="min-h-full flex items-start md:items-center justify-center">
             <div
-              className="w-full max-w-3xl bg-gradient-to-br from-white via-blue-50 to-indigo-50 border border-gray-200 rounded-2xl shadow-2xl"
+              className="w-full max-w-3xl bg-gradient-to-br from-white via-blue-50 to-blue-50 border border-gray-200 rounded-2xl shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <ScanWorkspace inModal onClose={closeScanModal} />

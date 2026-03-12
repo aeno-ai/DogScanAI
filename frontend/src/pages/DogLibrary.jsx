@@ -328,52 +328,52 @@ const DogLibrary = () => {
         color: "bg-orange-100 text-orange-700",
       },
 
-      // Purple — Calm / Quiet
-      { value: "calm", label: "Calm", color: "bg-purple-100 text-purple-700" },
+      // Blue — Calm / Quiet
+      { value: "calm", label: "Calm", color: "bg-blue-100 text-blue-700" },
       {
         value: "quiet",
         label: "Quiet",
-        color: "bg-purple-100 text-purple-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "adaptable",
         label: "Adaptable",
-        color: "bg-purple-100 text-purple-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "sensitive",
         label: "Sensitive",
-        color: "bg-purple-100 text-purple-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "responsive",
         label: "Responsive",
-        color: "bg-purple-100 text-purple-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "resilient",
         label: "Resilient",
-        color: "bg-purple-100 text-purple-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "comical",
         label: "Comical",
-        color: "bg-purple-100 text-purple-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "clownish",
         label: "Clownish",
-        color: "bg-purple-100 text-purple-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "charming",
         label: "Charming",
-        color: "bg-purple-100 text-purple-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "optimistic",
         label: "Optimistic",
-        color: "bg-purple-100 text-purple-700",
+        color: "bg-blue-100 text-blue-700",
       },
 
       // Red — Protective / Bold
@@ -418,61 +418,61 @@ const DogLibrary = () => {
       },
       { value: "sassy", label: "Sassy", color: "bg-red-100 text-red-700" },
 
-      // Indigo — Intelligent / Trainable
+      // Blue — Intelligent / Trainable
       {
         value: "intelligent",
         label: "Intelligent",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "smart",
         label: "Smart",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "bright",
         label: "Bright",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "trainable",
         label: "Trainable",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "obedient",
         label: "Obedient",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "alert",
         label: "Alert",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "curious",
         label: "Curious",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "inquisitive",
         label: "Inquisitive",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "cooperative",
         label: "Cooperative",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "hardworking",
         label: "Hardworking",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
       {
         value: "eager",
         label: "Eager",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-blue-100 text-blue-700",
       },
 
       // Teal — Reliable / Working traits
@@ -676,7 +676,7 @@ const DogLibrary = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+    <div className="page-bg">
       <TopNav
         centerContent={
           <div className="flex items-center justify-center gap-2 w-full">
@@ -807,7 +807,7 @@ const DogLibrary = () => {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+      <div className="page-container pt-24 pb-12">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
@@ -917,7 +917,7 @@ const DogLibrary = () => {
                                   <p className="text-xs text-gray-500">
                                     {trait.label}
                                   </p>
-                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                  <p className="text-sm font-medium text-gray-900">
                                     {breed.physicalTraits[trait.key]}
                                   </p>
                                 </div>
@@ -961,7 +961,7 @@ const DogLibrary = () => {
                             return (
                               <div key={char.key} className="text-center">
                                 <div className="flex justify-center mb-1">
-                                  <IconComponent className="w-4 h-4 text-purple-600" />
+                                  <IconComponent className="w-4 h-4 text-blue-600" />
                                 </div>
                                 <p className="text-xs text-gray-500 mb-0.5">
                                   {char.label}

@@ -33,7 +33,7 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+      <div className="page-bg">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/40 md:hidden"
@@ -152,7 +152,7 @@ const AdminLayout = () => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="page-container py-6 sm:py-8">
         <Outlet />
       </main>
     </div>

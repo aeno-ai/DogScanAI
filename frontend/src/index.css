@@ -7,7 +7,7 @@
     --foreground: 222 47% 11%;
     --card: 210 40% 98%;
     --card-foreground: 222 47% 11%;
-    --primary: 200 98% 39%;
+    --primary: 217 91% 60%;
     --primary-foreground: 204 100% 97%;
     --secondary: 215 24% 26%;
     --secondary-foreground: 210 40% 98%;
@@ -19,11 +19,12 @@
     --destructive-foreground: 0 85% 97%;
     --border: 212 26% 83%;
     --input: 212 26% 83%;
-    --ring: 200 98% 39%;
+    --ring: 217 91% 60%;
     --radius: 0.5rem;
 
     /* Font families */
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: 'Lora', ui-serif, Georgia, serif;
     --font-mono: ui-monospace, SFMono-Regular, 'Courier New', monospace;
   }
 
@@ -32,7 +33,7 @@
     --foreground: 210 40% 98%;
     --card: 217 32% 17%;
     --card-foreground: 210 40% 98%;
-    --primary: 198 93% 59%;
+    --primary: 217 91% 60%;
     --primary-foreground: 204 80% 15%;
     --secondary: 212 26% 83%;
     --secondary-foreground: 228 84% 4%;
@@ -44,7 +45,7 @@
     --destructive-foreground: 0 85% 97%;
     --border: 215 19% 34%;
     --input: 215 19% 34%;
-    --ring: 198 93% 59%;
+    --ring: 217 91% 60%;
   }
 }
 
@@ -104,4 +105,107 @@
 
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(140%);
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  .page-bg {
+    @apply min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100;
+  }
+
+  .page-container {
+    @apply max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-pad {
+    @apply py-24;
+  }
+
+  .section-pad-tight {
+    @apply py-16;
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.8s ease both;
+  }
+
+  .animate-fade-up-delayed {
+    animation: fade-up 0.8s ease both;
+    animation-delay: 0.12s;
+  }
+
+  .animate-fade-up-delayed-2 {
+    animation: fade-up 0.8s ease both;
+    animation-delay: 0.24s;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 5s ease-in-out infinite;
+  }
+
+  .animate-scanline {
+    animation: scanline 3.5s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-up-delayed,
+  .animate-fade-up-delayed-2,
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-scanline {
+    animation: none !important;
+    transform: none !important;
+  }
 }

@@ -34,7 +34,7 @@ const SORT_OPTIONS = [
 const STATS_CONFIG = [
   { key: "total_scans",    label: "Total Scans",      icon: ImageIcon,  color: "text-blue-600 bg-blue-100"   },
   { key: "this_month",     label: "This Month",        icon: Calendar,   color: "text-green-600 bg-green-100" },
-  { key: "avg_confidence", label: "Avg Confidence",    icon: TrendingUp, color: "text-purple-600 bg-purple-100" },
+  { key: "avg_confidence", label: "Avg Confidence",    icon: TrendingUp, color: "text-blue-600 bg-blue-100" },
 ];
 
 // ─── Pure helpers (outside component — no need to be recreated each render) ──
@@ -260,10 +260,10 @@ const HistoryPage = () => {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+    <div className="page-bg">
       <TopNav />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+      <div className="page-container pt-24 pb-12">
 
         {/* Header */}
         <div className="mb-8">
@@ -452,7 +452,7 @@ const HistoryPage = () => {
             </p>
             <button
               onClick={() => navigate("/dashboard?scan=1")}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-medium"
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all font-medium"
             >
               Start New Scan
             </button>

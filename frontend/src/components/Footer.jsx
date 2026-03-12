@@ -3,7 +3,7 @@ import { Dog, Twitter, Instagram, Facebook } from "lucide-react";
 const Footer = () => {
   return (
     <footer className="bg-gray-950 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="page-container">
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="sm:col-span-2">

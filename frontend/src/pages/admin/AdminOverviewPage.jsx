@@ -18,7 +18,7 @@ const RANGE_OPTIONS = [
 
 const KPI_CONFIG = [
   { key: "total_users", label: "Total Users", icon: Users, color: "text-blue-600 bg-blue-100" },
-  { key: "total_scans", label: "Total Scans", icon: ScanLine, color: "text-indigo-600 bg-indigo-100" },
+  { key: "total_scans", label: "Total Scans", icon: ScanLine, color: "text-blue-600 bg-blue-100" },
   { key: "breed_scans", label: "Breed Scans", icon: PawPrint, color: "text-emerald-600 bg-emerald-100" },
   { key: "disease_scans", label: "Disease Scans", icon: Stethoscope, color: "text-amber-600 bg-amber-100" },
   { key: "scans_last_24h", label: "Last 24 Hours", icon: Activity, color: "text-rose-600 bg-rose-100" },
@@ -73,7 +73,7 @@ const AdminOverviewPage = () => {
   const recentScans = Array.isArray(data?.recent_scans) ? data.recent_scans : [];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Admin Overview</h1>

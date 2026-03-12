@@ -150,7 +150,7 @@ const AdminUsersPage = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">User Management</h1>
         <p className="text-slate-600">Search users, then ban or unban accounts.</p>
@@ -222,7 +222,7 @@ const AdminUsersPage = () => {
                       </td>
                       <td className="py-3 px-4">
                         {item.is_superadmin ? (
-                          <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700">
+                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
                             Superadmin
                           </span>
                         ) : item.is_admin ? (

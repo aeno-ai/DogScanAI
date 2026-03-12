@@ -11,7 +11,7 @@ const router = express.Router();
 const db = require("../config/database");
 const auth = require("../middleware/auth");
 
-const FLASK_URL = process.env.FLASK_URL || "http://localhost:5001";
+const FLASK_URL = process.env.FLASK_URL;
 const DB_UNAVAILABLE_CODES = new Set(["ECONNREFUSED", "ETIMEDOUT", "57P01", "57P02", "57P03"]);
 const SCAN_UPLOAD_DIR = path.resolve(__dirname, "../uploads/scans");
 const PUBLIC_SCAN_LIMIT =

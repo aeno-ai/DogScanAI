@@ -167,7 +167,7 @@ const AdminContributionsPage = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Contribution Review</h1>
         <p className="text-slate-600">Review user-consented breed scans and accept or reject them.</p>

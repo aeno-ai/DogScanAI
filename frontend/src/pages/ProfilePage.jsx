@@ -141,7 +141,7 @@ const ProfilePage = () => {
         key: "role",
         label: "Role",
         icon: User,
-        color: "text-purple-600 bg-purple-100",
+        color: "text-blue-600 bg-blue-100",
         value: getRole(user),
       },
     ],
@@ -331,9 +331,9 @@ const ProfilePage = () => {
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+      <div className="page-bg">
         <TopNav />
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12 flex items-center justify-center">
+        <div className="page-container pt-24 pb-12 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
       </div>
@@ -341,10 +341,10 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+    <div className="page-bg">
       <TopNav />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+      <div className="page-container pt-24 pb-12">
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Account Settings</h1>
           <p className="text-gray-600">Manage your account information and security settings</p>
@@ -367,7 +367,7 @@ const ProfilePage = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
               <div className="text-center mb-6">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4">
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4">
                   {user?.username?.charAt(0).toUpperCase() || "U"}
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 mb-1">{user?.username}</h2>
@@ -565,8 +565,8 @@ const ProfilePage = () => {
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Lock className="w-5 h-5 text-purple-600" />
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Password</h3>
@@ -584,7 +584,7 @@ const ProfilePage = () => {
               {!showPasswordFields ? (
                 <button
                   onClick={() => setShowPasswordFields(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
                   <Key className="w-5 h-5" />
                   Change Password
@@ -682,7 +682,7 @@ const ProfilePage = () => {
                     <button
                       onClick={handlePasswordChange}
                       disabled={submittingType === "password" || !getCooldownStatus("password").canChange}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {submittingType === "password" ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
