@@ -189,7 +189,7 @@ const Hero = () => {
               className={`flex flex-col items-center lg:items-start gap-3 ${fadeUp()}`}
               style={{ transitionDelay: "380ms" }}
             >
-              <div className="inline-flex items-center gap-2 text-sm text-slate-500 border border-slate-800 bg-slate-900/60 px-3 py-2 rounded-full">
+              <div className="inline-flex items-center gap-2 text-sm text-slate-500">
                 <Smartphone className="w-4 h-4 text-blue-500" />
                 Also available on Android
               </div>
@@ -198,27 +198,7 @@ const Hero = () => {
               </button>
             </div>
 
-            {/* Stats */}
-            <div
-              className={`mt-10 grid grid-cols-3 gap-3 ${fadeUp()}`}
-              style={{ transitionDelay: "460ms" }}
-            >
-              {[
-                { label: "Breeds indexed", value: "350+" },
-                { label: "Avg scan time", value: "Seconds" },
-                { label: "Care insights", value: "Tailored" },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm px-3 py-3 hover:border-blue-500/30 transition-colors group"
-                >
-                  <p className="text-[10px] uppercase tracking-widest text-slate-600 group-hover:text-slate-500 transition-colors mb-1">
-                    {stat.label}
-                  </p>
-                  <p className="text-base font-bold text-white">{stat.value}</p>
-                </div>
-              ))}
-            </div>
+           
           </div>
 
           {/* ── Right column: floating image card ── */}

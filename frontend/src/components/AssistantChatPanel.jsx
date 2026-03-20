@@ -34,7 +34,7 @@ export default function AssistantChatPanel({
 
   const contextKey = useMemo(
     () => (scanContext ? JSON.stringify(scanContext) : "general"),
-    [scanContext]
+    [scanContext],
   );
 
   const requestConfig = useMemo(() => {
@@ -60,11 +60,15 @@ export default function AssistantChatPanel({
           const res = await api.post(
             "/api/assistant/threads/scan",
             { scan_context: scanContext },
-            requestConfig
+            requestConfig,
           );
           threadData = res.data;
         } else {
-          const res = await api.post("/api/assistant/threads/general", {}, requestConfig);
+          const res = await api.post(
+            "/api/assistant/threads/general",
+            scanContext ? { scan_context: scanContext } : {},
+            requestConfig,
+          );
           threadData = res.data;
         }
 
@@ -77,14 +81,16 @@ export default function AssistantChatPanel({
 
         const list = await api.get(
           `/api/assistant/threads/${nextThreadId}/messages`,
-          requestConfig
+          requestConfig,
         );
         if (!mounted) return;
         setMessages(normalizeMessages(list.data?.messages));
       } catch (err) {
         if (!mounted) return;
         setMessages([]);
-        toast.error(err?.response?.data?.error || "Failed to load assistant chat.");
+        toast.error(
+          err?.response?.data?.error || "Failed to load assistant chat.",
+        );
       } finally {
         if (mounted) setLoading(false);
       }
@@ -112,14 +118,19 @@ export default function AssistantChatPanel({
     setSending(true);
     setMessages((prev) => [
       ...prev,
-      { id: tempId, role: "user", content, created_at: new Date().toISOString() },
+      {
+        id: tempId,
+        role: "user",
+        content,
+        created_at: new Date().toISOString(),
+      },
     ]);
 
     try {
       const res = await api.post(
         `/api/assistant/threads/${threadId}/messages`,
         { message: content },
-        requestConfig
+        requestConfig,
       );
       const userMessage = res.data?.user_message;
       const assistantMessage = res.data?.assistant_message;
@@ -149,7 +160,10 @@ export default function AssistantChatPanel({
         <p className="text-sm text-slate-600 mt-1">{subtitle}</p>
       </div>
 
-      <div ref={listRef} className="h-72 overflow-y-auto px-4 sm:px-5 py-4 space-y-3 bg-white">
+      <div
+        ref={listRef}
+        className="h-72 overflow-y-auto px-4 sm:px-5 py-4 space-y-3 bg-white"
+      >
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
@@ -193,7 +207,11 @@ export default function AssistantChatPanel({
           disabled={!input.trim() || loading || sending || !threadId}
           className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {sending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
           Send
         </button>
       </form>

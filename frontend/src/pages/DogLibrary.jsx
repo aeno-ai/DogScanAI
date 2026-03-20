@@ -18,12 +18,18 @@ import {
   Loader2,
   Maximize2,
   ZoomIn,
+  SlidersHorizontal,
+  ChevronDown,
+  GitCompare,
 } from "lucide-react";
+
 import TopNav from "../components/ui/TopNav";
+import BreedCompareModal from "../components/Breedcomparemodal";
 import { buildBreedImagePath } from "../utils/breedImage";
 
 const DogLibrary = () => {
   const navigate = useNavigate();
+  const [compareOpen, setCompareOpen] = useState(false);
   const [breeds, setBreeds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,8 +40,6 @@ const DogLibrary = () => {
     image: "",
     name: "",
   });
-
-  // New state for mobile filter panel
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const filterConfig = {
@@ -48,8 +52,6 @@ const DogLibrary = () => {
     ],
     temperaments: [
       { value: "all", label: "All Temperaments" },
-
-      // Social / People-oriented
       { value: "playful", label: "Playful" },
       { value: "loyal", label: "Loyal" },
       { value: "affectionate", label: "Affectionate" },
@@ -58,8 +60,6 @@ const DogLibrary = () => {
       { value: "sociable", label: "Sociable" },
       { value: "social", label: "Social" },
       { value: "sweet", label: "Sweet" },
-
-      // Friendly / Easy-going
       { value: "friendly", label: "Friendly" },
       { value: "gentle", label: "Gentle" },
       { value: "amiable", label: "Amiable" },
@@ -71,8 +71,6 @@ const DogLibrary = () => {
       { value: "patient", label: "Patient" },
       { value: "docile", label: "Docile" },
       { value: "lovable", label: "Lovable" },
-
-      // Energetic / Active
       { value: "energetic", label: "Energetic" },
       { value: "active", label: "Active" },
       { value: "athletic", label: "Athletic" },
@@ -87,8 +85,6 @@ const DogLibrary = () => {
       { value: "cheerful", label: "Cheerful" },
       { value: "outgoing", label: "Outgoing" },
       { value: "vocal", label: "Vocal" },
-
-      // Calm / Quiet
       { value: "calm", label: "Calm" },
       { value: "quiet", label: "Quiet" },
       { value: "adaptable", label: "Adaptable" },
@@ -99,8 +95,6 @@ const DogLibrary = () => {
       { value: "clownish", label: "Clownish" },
       { value: "charming", label: "Charming" },
       { value: "optimistic", label: "Optimistic" },
-
-      // Protective / Bold
       { value: "protective", label: "Protective" },
       { value: "courageous", label: "Courageous" },
       { value: "brave", label: "Brave" },
@@ -113,8 +107,6 @@ const DogLibrary = () => {
       { value: "assertive", label: "Assertive" },
       { value: "dominant", label: "Dominant" },
       { value: "sassy", label: "Sassy" },
-
-      // Intelligent / Trainable
       { value: "intelligent", label: "Intelligent" },
       { value: "smart", label: "Smart" },
       { value: "bright", label: "Bright" },
@@ -126,8 +118,6 @@ const DogLibrary = () => {
       { value: "cooperative", label: "Cooperative" },
       { value: "hardworking", label: "Hardworking" },
       { value: "eager", label: "Eager" },
-
-      // Reliable / Working traits
       { value: "reliable", label: "Reliable" },
       { value: "trustworthy", label: "Trustworthy" },
       { value: "faithful", label: "Faithful" },
@@ -139,8 +129,6 @@ const DogLibrary = () => {
       { value: "confident", label: "Confident" },
       { value: "self-assured", label: "Self-Assured" },
       { value: "quick", label: "Quick" },
-
-      // Independent / Aloof
       { value: "independent", label: "Independent" },
       { value: "aloof", label: "Aloof" },
       { value: "dignified", label: "Dignified" },
@@ -173,472 +161,144 @@ const DogLibrary = () => {
 
   const temperamentConfig = {
     badges: [
-      // Blue — Social / People-oriented
-      {
-        value: "playful",
-        label: "Playful",
-        color: "bg-blue-100 text-blue-700",
-      },
+      { value: "playful", label: "Playful", color: "bg-blue-100 text-blue-700" },
       { value: "loyal", label: "Loyal", color: "bg-blue-100 text-blue-700" },
-      {
-        value: "affectionate",
-        label: "Affectionate",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "devoted",
-        label: "Devoted",
-        color: "bg-blue-100 text-blue-700",
-      },
+      { value: "affectionate", label: "Affectionate", color: "bg-blue-100 text-blue-700" },
+      { value: "devoted", label: "Devoted", color: "bg-blue-100 text-blue-700" },
       { value: "loving", label: "Loving", color: "bg-blue-100 text-blue-700" },
-      {
-        value: "sociable",
-        label: "Sociable",
-        color: "bg-blue-100 text-blue-700",
-      },
+      { value: "sociable", label: "Sociable", color: "bg-blue-100 text-blue-700" },
       { value: "social", label: "Social", color: "bg-blue-100 text-blue-700" },
       { value: "sweet", label: "Sweet", color: "bg-blue-100 text-blue-700" },
-
-      // Green — Friendly / Easy-going
-      {
-        value: "friendly",
-        label: "Friendly",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "gentle",
-        label: "Gentle",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "amiable",
-        label: "Amiable",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "good-natured",
-        label: "Good-Natured",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "good-tempered",
-        label: "Good-Tempered",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "pleasant",
-        label: "Pleasant",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "easygoing",
-        label: "Easygoing",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "even-tempered",
-        label: "Even-Tempered",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "patient",
-        label: "Patient",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "docile",
-        label: "Docile",
-        color: "bg-green-100 text-green-700",
-      },
-      {
-        value: "lovable",
-        label: "Lovable",
-        color: "bg-green-100 text-green-700",
-      },
-
-      // Orange — Energetic / Active
-      {
-        value: "energetic",
-        label: "Energetic",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "active",
-        label: "Active",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "athletic",
-        label: "Athletic",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "agile",
-        label: "Agile",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "lively",
-        label: "Lively",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "vivacious",
-        label: "Vivacious",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "exuberant",
-        label: "Exuberant",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "boisterous",
-        label: "Boisterous",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "fun-loving",
-        label: "Fun-Loving",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "merry",
-        label: "Merry",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "happy",
-        label: "Happy",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "cheerful",
-        label: "Cheerful",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "outgoing",
-        label: "Outgoing",
-        color: "bg-orange-100 text-orange-700",
-      },
-      {
-        value: "vocal",
-        label: "Vocal",
-        color: "bg-orange-100 text-orange-700",
-      },
-
-      // Blue — Calm / Quiet
+      { value: "friendly", label: "Friendly", color: "bg-green-100 text-green-700" },
+      { value: "gentle", label: "Gentle", color: "bg-green-100 text-green-700" },
+      { value: "amiable", label: "Amiable", color: "bg-green-100 text-green-700" },
+      { value: "good-natured", label: "Good-Natured", color: "bg-green-100 text-green-700" },
+      { value: "good-tempered", label: "Good-Tempered", color: "bg-green-100 text-green-700" },
+      { value: "pleasant", label: "Pleasant", color: "bg-green-100 text-green-700" },
+      { value: "easygoing", label: "Easygoing", color: "bg-green-100 text-green-700" },
+      { value: "even-tempered", label: "Even-Tempered", color: "bg-green-100 text-green-700" },
+      { value: "patient", label: "Patient", color: "bg-green-100 text-green-700" },
+      { value: "docile", label: "Docile", color: "bg-green-100 text-green-700" },
+      { value: "lovable", label: "Lovable", color: "bg-green-100 text-green-700" },
+      { value: "energetic", label: "Energetic", color: "bg-orange-100 text-orange-700" },
+      { value: "active", label: "Active", color: "bg-orange-100 text-orange-700" },
+      { value: "athletic", label: "Athletic", color: "bg-orange-100 text-orange-700" },
+      { value: "agile", label: "Agile", color: "bg-orange-100 text-orange-700" },
+      { value: "lively", label: "Lively", color: "bg-orange-100 text-orange-700" },
+      { value: "vivacious", label: "Vivacious", color: "bg-orange-100 text-orange-700" },
+      { value: "exuberant", label: "Exuberant", color: "bg-orange-100 text-orange-700" },
+      { value: "boisterous", label: "Boisterous", color: "bg-orange-100 text-orange-700" },
+      { value: "fun-loving", label: "Fun-Loving", color: "bg-orange-100 text-orange-700" },
+      { value: "merry", label: "Merry", color: "bg-orange-100 text-orange-700" },
+      { value: "happy", label: "Happy", color: "bg-orange-100 text-orange-700" },
+      { value: "cheerful", label: "Cheerful", color: "bg-orange-100 text-orange-700" },
+      { value: "outgoing", label: "Outgoing", color: "bg-orange-100 text-orange-700" },
+      { value: "vocal", label: "Vocal", color: "bg-orange-100 text-orange-700" },
       { value: "calm", label: "Calm", color: "bg-blue-100 text-blue-700" },
-      {
-        value: "quiet",
-        label: "Quiet",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "adaptable",
-        label: "Adaptable",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "sensitive",
-        label: "Sensitive",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "responsive",
-        label: "Responsive",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "resilient",
-        label: "Resilient",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "comical",
-        label: "Comical",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "clownish",
-        label: "Clownish",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "charming",
-        label: "Charming",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "optimistic",
-        label: "Optimistic",
-        color: "bg-blue-100 text-blue-700",
-      },
-
-      // Red — Protective / Bold
-      {
-        value: "protective",
-        label: "Protective",
-        color: "bg-red-100 text-red-700",
-      },
-      {
-        value: "courageous",
-        label: "Courageous",
-        color: "bg-red-100 text-red-700",
-      },
+      { value: "quiet", label: "Quiet", color: "bg-blue-100 text-blue-700" },
+      { value: "adaptable", label: "Adaptable", color: "bg-blue-100 text-blue-700" },
+      { value: "sensitive", label: "Sensitive", color: "bg-blue-100 text-blue-700" },
+      { value: "responsive", label: "Responsive", color: "bg-blue-100 text-blue-700" },
+      { value: "resilient", label: "Resilient", color: "bg-blue-100 text-blue-700" },
+      { value: "comical", label: "Comical", color: "bg-blue-100 text-blue-700" },
+      { value: "clownish", label: "Clownish", color: "bg-blue-100 text-blue-700" },
+      { value: "charming", label: "Charming", color: "bg-blue-100 text-blue-700" },
+      { value: "optimistic", label: "Optimistic", color: "bg-blue-100 text-blue-700" },
+      { value: "protective", label: "Protective", color: "bg-red-100 text-red-700" },
+      { value: "courageous", label: "Courageous", color: "bg-red-100 text-red-700" },
       { value: "brave", label: "Brave", color: "bg-red-100 text-red-700" },
       { value: "bold", label: "Bold", color: "bg-red-100 text-red-700" },
-      {
-        value: "fearless",
-        label: "Fearless",
-        color: "bg-red-100 text-red-700",
-      },
+      { value: "fearless", label: "Fearless", color: "bg-red-100 text-red-700" },
       { value: "daring", label: "Daring", color: "bg-red-100 text-red-700" },
       { value: "feisty", label: "Feisty", color: "bg-red-100 text-red-700" },
-      {
-        value: "spirited",
-        label: "Spirited",
-        color: "bg-red-100 text-red-700",
-      },
-      {
-        value: "tenacious",
-        label: "Tenacious",
-        color: "bg-red-100 text-red-700",
-      },
-      {
-        value: "assertive",
-        label: "Assertive",
-        color: "bg-red-100 text-red-700",
-      },
-      {
-        value: "dominant",
-        label: "Dominant",
-        color: "bg-red-100 text-red-700",
-      },
+      { value: "spirited", label: "Spirited", color: "bg-red-100 text-red-700" },
+      { value: "tenacious", label: "Tenacious", color: "bg-red-100 text-red-700" },
+      { value: "assertive", label: "Assertive", color: "bg-red-100 text-red-700" },
+      { value: "dominant", label: "Dominant", color: "bg-red-100 text-red-700" },
       { value: "sassy", label: "Sassy", color: "bg-red-100 text-red-700" },
-
-      // Blue — Intelligent / Trainable
-      {
-        value: "intelligent",
-        label: "Intelligent",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "smart",
-        label: "Smart",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "bright",
-        label: "Bright",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "trainable",
-        label: "Trainable",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "obedient",
-        label: "Obedient",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "alert",
-        label: "Alert",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "curious",
-        label: "Curious",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "inquisitive",
-        label: "Inquisitive",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "cooperative",
-        label: "Cooperative",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "hardworking",
-        label: "Hardworking",
-        color: "bg-blue-100 text-blue-700",
-      },
-      {
-        value: "eager",
-        label: "Eager",
-        color: "bg-blue-100 text-blue-700",
-      },
-
-      // Teal — Reliable / Working traits
-      {
-        value: "reliable",
-        label: "Reliable",
-        color: "bg-teal-100 text-teal-700",
-      },
-      {
-        value: "trustworthy",
-        label: "Trustworthy",
-        color: "bg-teal-100 text-teal-700",
-      },
-      {
-        value: "faithful",
-        label: "Faithful",
-        color: "bg-teal-100 text-teal-700",
-      },
-      {
-        value: "dependable",
-        label: "Dependable",
-        color: "bg-teal-100 text-teal-700",
-      },
-      {
-        value: "willing",
-        label: "Willing",
-        color: "bg-teal-100 text-teal-700",
-      },
+      { value: "intelligent", label: "Intelligent", color: "bg-blue-100 text-blue-700" },
+      { value: "smart", label: "Smart", color: "bg-blue-100 text-blue-700" },
+      { value: "bright", label: "Bright", color: "bg-blue-100 text-blue-700" },
+      { value: "trainable", label: "Trainable", color: "bg-blue-100 text-blue-700" },
+      { value: "obedient", label: "Obedient", color: "bg-blue-100 text-blue-700" },
+      { value: "alert", label: "Alert", color: "bg-blue-100 text-blue-700" },
+      { value: "curious", label: "Curious", color: "bg-blue-100 text-blue-700" },
+      { value: "inquisitive", label: "Inquisitive", color: "bg-blue-100 text-blue-700" },
+      { value: "cooperative", label: "Cooperative", color: "bg-blue-100 text-blue-700" },
+      { value: "hardworking", label: "Hardworking", color: "bg-blue-100 text-blue-700" },
+      { value: "eager", label: "Eager", color: "bg-blue-100 text-blue-700" },
+      { value: "reliable", label: "Reliable", color: "bg-teal-100 text-teal-700" },
+      { value: "trustworthy", label: "Trustworthy", color: "bg-teal-100 text-teal-700" },
+      { value: "faithful", label: "Faithful", color: "bg-teal-100 text-teal-700" },
+      { value: "dependable", label: "Dependable", color: "bg-teal-100 text-teal-700" },
+      { value: "willing", label: "Willing", color: "bg-teal-100 text-teal-700" },
       { value: "hardy", label: "Hardy", color: "bg-teal-100 text-teal-700" },
       { value: "strong", label: "Strong", color: "bg-teal-100 text-teal-700" },
-      {
-        value: "determined",
-        label: "Determined",
-        color: "bg-teal-100 text-teal-700",
-      },
-      {
-        value: "confident",
-        label: "Confident",
-        color: "bg-teal-100 text-teal-700",
-      },
-      {
-        value: "self-assured",
-        label: "Self-Assured",
-        color: "bg-teal-100 text-teal-700",
-      },
+      { value: "determined", label: "Determined", color: "bg-teal-100 text-teal-700" },
+      { value: "confident", label: "Confident", color: "bg-teal-100 text-teal-700" },
+      { value: "self-assured", label: "Self-Assured", color: "bg-teal-100 text-teal-700" },
       { value: "quick", label: "Quick", color: "bg-teal-100 text-teal-700" },
-
-      // Yellow — Independent / Aloof
-      {
-        value: "independent",
-        label: "Independent",
-        color: "bg-yellow-100 text-yellow-700",
-      },
-      {
-        value: "aloof",
-        label: "Aloof",
-        color: "bg-yellow-100 text-yellow-700",
-      },
-      {
-        value: "dignified",
-        label: "Dignified",
-        color: "bg-yellow-100 text-yellow-700",
-      },
-      {
-        value: "regal",
-        label: "Regal",
-        color: "bg-yellow-100 text-yellow-700",
-      },
-      {
-        value: "stubborn",
-        label: "Stubborn",
-        color: "bg-yellow-100 text-yellow-700",
-      },
-      {
-        value: "strong-willed",
-        label: "Strong-Willed",
-        color: "bg-yellow-100 text-yellow-700",
-      },
-      {
-        value: "wary of strangers",
-        label: "Wary of Strangers",
-        color: "bg-yellow-100 text-yellow-700",
-      },
-      {
-        value: "cat-like",
-        label: "Cat-Like",
-        color: "bg-yellow-100 text-yellow-700",
-      },
-      {
-        value: "mischievous",
-        label: "Mischievous",
-        color: "bg-yellow-100 text-yellow-700",
-      },
+      { value: "independent", label: "Independent", color: "bg-yellow-100 text-yellow-700" },
+      { value: "aloof", label: "Aloof", color: "bg-yellow-100 text-yellow-700" },
+      { value: "dignified", label: "Dignified", color: "bg-yellow-100 text-yellow-700" },
+      { value: "regal", label: "Regal", color: "bg-yellow-100 text-yellow-700" },
+      { value: "stubborn", label: "Stubborn", color: "bg-yellow-100 text-yellow-700" },
+      { value: "strong-willed", label: "Strong-Willed", color: "bg-yellow-100 text-yellow-700" },
+      { value: "wary of strangers", label: "Wary of Strangers", color: "bg-yellow-100 text-yellow-700" },
+      { value: "cat-like", label: "Cat-Like", color: "bg-yellow-100 text-yellow-700" },
+      { value: "mischievous", label: "Mischievous", color: "bg-yellow-100 text-yellow-700" },
     ],
   };
 
-  // Transform JSON data to match component format
-  const transformBreedData = (jsonBreed) => {
-    return {
-      id: jsonBreed.breed_id,
-      name: jsonBreed.display_name,
-      image: buildBreedImagePath(jsonBreed.breed_id, jsonBreed.class_name),
-      size: jsonBreed.size,
-      temperament: jsonBreed.temperament,
-      physicalTraits: {
-        snout: jsonBreed.physical_traits.snout,
-        ears: jsonBreed.physical_traits.ears,
-        coat: jsonBreed.physical_traits.coat,
-        tail: jsonBreed.physical_traits.tail,
-      },
-      measurements: {
-        height: `${jsonBreed.measurements.height_min}-${jsonBreed.measurements.height_max}`,
-        weight: `${jsonBreed.measurements.weight_min}-${jsonBreed.measurements.weight_max}`,
-      },
-      characteristics: {
-        lifespan: `${jsonBreed.characteristics.lifespan_min}-${jsonBreed.characteristics.lifespan_max}`,
-        origin: jsonBreed.characteristics.origin,
-        group: jsonBreed.characteristics.breed_group,
-      },
-      description: jsonBreed.description,
-      popularity: jsonBreed.popularity_score,
-      healthConsiderations: jsonBreed.health_considerations,
-      keyHealthTips: jsonBreed.key_health_tips,
-    };
-  };
+  const transformBreedData = (jsonBreed) => ({
+    id: jsonBreed.breed_id,
+    name: jsonBreed.display_name,
+    image: buildBreedImagePath(jsonBreed.breed_id, jsonBreed.class_name),
+    size: jsonBreed.size,
+    temperament: jsonBreed.temperament,
+    physicalTraits: {
+      snout: jsonBreed.physical_traits.snout,
+      ears: jsonBreed.physical_traits.ears,
+      coat: jsonBreed.physical_traits.coat,
+      tail: jsonBreed.physical_traits.tail,
+    },
+    measurements: {
+      height: `${jsonBreed.measurements.height_min}-${jsonBreed.measurements.height_max}`,
+      weight: `${jsonBreed.measurements.weight_min}-${jsonBreed.measurements.weight_max}`,
+    },
+    characteristics: {
+      lifespan: `${jsonBreed.characteristics.lifespan_min}-${jsonBreed.characteristics.lifespan_max}`,
+      origin: jsonBreed.characteristics.origin,
+      group: jsonBreed.characteristics.breed_group,
+    },
+    description: jsonBreed.description,
+    popularity: jsonBreed.popularity_score,
+    healthConsiderations: jsonBreed.health_considerations,
+    keyHealthTips: jsonBreed.key_health_tips,
+  });
 
-  // Fetch breeds from your backend
   useEffect(() => {
     const fetchBreeds = async () => {
       setLoading(true);
       try {
-        console.log("🔄 Fetching breeds from backend...");
-
-        // Call your backend API
         const response = await fetch("http://localhost:5000/api/breeds");
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch breeds");
-        }
-
+        if (!response.ok) throw new Error("Failed to fetch breeds");
         const jsonData = await response.json();
-        console.log("✅ Received data:", jsonData.length, "breeds");
-
-        // Transform the data
-        const transformedBreeds = jsonData.map(transformBreedData);
-        setBreeds(transformedBreeds);
+        setBreeds(jsonData.map(transformBreedData));
       } catch (error) {
         console.error("❌ Error fetching breeds:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchBreeds();
   }, []);
 
-  // Filter logic
   const filteredBreeds = breeds.filter((breed) => {
-    const matchesSearch = breed.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const matchesSearch = breed.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSize = selectedSize === "all" || breed.size === selectedSize;
     const matchesTemperament =
-      selectedTemperament === "all" ||
-      breed.temperament.includes(selectedTemperament);
-
+      selectedTemperament === "all" || breed.temperament.includes(selectedTemperament);
     return matchesSearch && matchesSize && matchesTemperament;
   });
 
@@ -659,14 +319,14 @@ const DogLibrary = () => {
 
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === "Escape" && imageViewer.open) {
-        closeImageViewer();
+      if (e.key === "Escape") {
+        if (imageViewer.open) closeImageViewer();
+        if (mobileFiltersOpen) setMobileFiltersOpen(false);
       }
     };
-
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [imageViewer.open]);
+  }, [imageViewer.open, mobileFiltersOpen]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -675,29 +335,44 @@ const DogLibrary = () => {
     setMobileFiltersOpen(false);
   };
 
+  // Count active filters (excluding search) for the badge
+  const activeFilterCount = [
+    selectedSize !== "all",
+    selectedTemperament !== "all",
+  ].filter(Boolean).length;
+
   return (
     <div className="page-bg">
       <TopNav
         centerContent={
-          <div className="flex items-center justify-center gap-2 w-full">
-            {/* Search - full width on mobile, fixed width on sm+ */}
-            <div className="relative flex-1 sm:flex-none">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-2 w-full">
+            {/* Search — grows to fill space on all screen sizes */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search breed..."
+                placeholder="Search breed…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-48"
+                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
-            {/* Desktop filters (hidden on small screens) */}
-            <div className="hidden sm:flex items-center gap-2">
+            {/* Desktop filters — hidden on mobile */}
+            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
               <select
                 value={selectedSize}
                 onChange={(e) => setSelectedSize(e.target.value)}
-                className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
               >
                 {filterConfig.sizes.map((size) => (
                   <option key={size.value} value={size.value}>
@@ -709,7 +384,7 @@ const DogLibrary = () => {
               <select
                 value={selectedTemperament}
                 onChange={(e) => setSelectedTemperament(e.target.value)}
-                className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
               >
                 {filterConfig.temperaments.map((temp) => (
                   <option key={temp.value} value={temp.value}>
@@ -718,93 +393,140 @@ const DogLibrary = () => {
                 ))}
               </select>
 
-              {(searchTerm ||
-                selectedSize !== "all" ||
-                selectedTemperament !== "all") && (
+              {(searchTerm || selectedSize !== "all" || selectedTemperament !== "all") && (
                 <button
                   onClick={clearFilters}
-                  className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
+                  className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium whitespace-nowrap"
                 >
                   Clear
                 </button>
               )}
+
+              <button
+                onClick={() => setCompareOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium whitespace-nowrap"
+              >
+                <GitCompare className="w-4 h-4" />
+                Compare
+              </button>
             </div>
 
-            {/* Mobile Filter Button */}
-            <div className="sm:hidden">
+            {/* Mobile: Filter toggle button + Compare button */}
+            <div className="flex sm:hidden items-center gap-2 flex-shrink-0">
+              {/* Compare — icon-only on mobile */}
+              <button
+                onClick={() => setCompareOpen(true)}
+                className="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                aria-label="Compare breeds"
+              >
+                <GitCompare className="w-4 h-4" />
+              </button>
+
+              {/* Filter button with active badge */}
               <button
                 onClick={() => setMobileFiltersOpen((s) => !s)}
                 aria-expanded={mobileFiltersOpen}
                 aria-controls="mobile-filters-panel"
-                className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg bg-white hover:bg-slate-50"
-                title="Filters"
+                className={`relative flex items-center justify-center w-9 h-9 rounded-lg border transition-colors ${
+                  mobileFiltersOpen || activeFilterCount > 0
+                    ? "border-blue-500 bg-blue-50 text-blue-600"
+                    : "border-slate-200 bg-white text-gray-600 hover:bg-slate-50"
+                }`}
+                aria-label="Toggle filters"
               >
-                <Filter className="w-4 h-4 text-gray-600" />
-                <span className="text-sm font-medium">Filters</span>
+                <SlidersHorizontal className="w-4 h-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 text-[10px] font-bold bg-blue-600 text-white rounded-full leading-none">
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>
         }
       />
 
-      {/* Mobile filter panel (collapsible) */}
+      {/* ── Mobile filter drawer ── */}
       {mobileFiltersOpen && (
-        <div
-          id="mobile-filters-panel"
-          className="sm:hidden bg-white border-t border-b border-slate-100 px-4 py-3 shadow-sm"
-        >
-          <div className="space-y-3">
-            <div>
-              <label className="sr-only">Size</label>
-              <select
-                value={selectedSize}
-                onChange={(e) => setSelectedSize(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {filterConfig.sizes.map((size) => (
-                  <option key={size.value} value={size.value}>
-                    {size.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-30 bg-black/20 sm:hidden"
+            onClick={() => setMobileFiltersOpen(false)}
+            aria-hidden="true"
+          />
 
-            <div>
-              <label className="sr-only">Temperament</label>
-              <select
-                value={selectedTemperament}
-                onChange={(e) => setSelectedTemperament(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {filterConfig.temperaments.map((temp) => (
-                  <option key={temp.value} value={temp.value}>
-                    {temp.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <button
-                onClick={() => setMobileFiltersOpen(false)}
-                className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm"
-              >
-                Done
-              </button>
-
-              {(searchTerm ||
-                selectedSize !== "all" ||
-                selectedTemperament !== "all") && (
+          {/* Drawer panel */}
+          <div
+            id="mobile-filters-panel"
+            className="fixed left-0 right-0 top-[57px] z-40 sm:hidden bg-white border-b border-slate-200 shadow-lg rounded-b-2xl px-4 pt-4 pb-5 animate-in slide-in-from-top-2 duration-200"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-gray-800">Filters</p>
+              {activeFilterCount > 0 && (
                 <button
                   onClick={clearFilters}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+                  className="text-xs text-blue-600 font-medium hover:underline"
                 >
-                  Clear
+                  Clear all ({activeFilterCount})
                 </button>
               )}
             </div>
+
+            <div className="space-y-3">
+              {/* Size */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Size
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {filterConfig.sizes.map((size) => (
+                    <button
+                      key={size.value}
+                      onClick={() => setSelectedSize(size.value)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        selectedSize === size.value
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-700 border-slate-200 hover:border-blue-400"
+                      }`}
+                    >
+                      {size.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Temperament */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Temperament
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedTemperament}
+                    onChange={(e) => setSelectedTemperament(e.target.value)}
+                    className="w-full appearance-none px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white pr-8"
+                  >
+                    {filterConfig.temperaments.map((temp) => (
+                      <option key={temp.value} value={temp.value}>
+                        {temp.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Done */}
+            <button
+              onClick={() => setMobileFiltersOpen(false)}
+              className="mt-4 w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              Show {filteredBreeds.length} breed{filteredBreeds.length !== 1 ? "s" : ""}
+            </button>
           </div>
-        </div>
+        </>
       )}
 
       <div className="page-container pt-24 pb-12">
@@ -819,17 +541,33 @@ const DogLibrary = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Main Content */}
           <div className="flex-1">
-            {/* Results Count */}
-            <div className="mb-4">
+            {/* Results Count + active filter chips */}
+            <div className="mb-4 flex flex-wrap items-center gap-2">
               <p className="text-sm text-gray-600">
                 Showing{" "}
                 <span className="font-semibold text-gray-900">
                   {filteredBreeds.length}
                 </span>{" "}
-                breeds
+                breed{filteredBreeds.length !== 1 ? "s" : ""}
               </p>
+
+              {selectedSize !== "all" && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                  {filterConfig.sizes.find((s) => s.value === selectedSize)?.label}
+                  <button onClick={() => setSelectedSize("all")} aria-label="Remove size filter">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {selectedTemperament !== "all" && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                  {filterConfig.temperaments.find((t) => t.value === selectedTemperament)?.label}
+                  <button onClick={() => setSelectedTemperament("all")} aria-label="Remove temperament filter">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
             </div>
 
             {/* Loading State */}
@@ -847,15 +585,14 @@ const DogLibrary = () => {
                     key={breed.id}
                     className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden"
                   >
-                    {/* Image with View Button */}
+                    {/* Image */}
                     <div className="relative h-48 bg-gray-200 group">
                       <img
                         src={breed.image}
                         alt={breed.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
                         onClick={() => openImageViewer(breed.image, breed.name)}
                       />
-
                       <button
                         onClick={() => openImageViewer(breed.image, breed.name)}
                         className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 text-white rounded-lg backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center gap-1.5"
@@ -864,7 +601,6 @@ const DogLibrary = () => {
                         <ZoomIn className="w-4 h-4" />
                         <span className="text-xs font-medium">View</span>
                       </button>
-
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/20 pointer-events-none">
                         <Maximize2 className="w-8 h-8 text-white drop-shadow-lg" />
                       </div>
@@ -872,21 +608,14 @@ const DogLibrary = () => {
 
                     {/* Content */}
                     <div className="p-6">
-                      {/* Header */}
                       <div className="mb-4">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                          {breed.name}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {breed.description}
-                        </p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{breed.name}</h3>
+                        <p className="text-sm text-gray-600">{breed.description}</p>
                       </div>
 
                       {/* Temperament Badges */}
                       <div className="mb-4">
-                        <p className="text-xs font-medium text-gray-700 mb-2">
-                          Behavior
-                        </p>
+                        <p className="text-xs font-medium text-gray-700 mb-2">Behavior</p>
                         <div className="flex flex-wrap gap-2">
                           {breed.temperament.map((temp, idx) => (
                             <span
@@ -901,22 +630,15 @@ const DogLibrary = () => {
 
                       {/* Physical Traits */}
                       <div className="mb-4 pb-4 border-b border-gray-100">
-                        <p className="text-xs font-medium text-gray-700 mb-3">
-                          Physical Traits
-                        </p>
+                        <p className="text-xs font-medium text-gray-700 mb-3">Physical Traits</p>
                         <div className="grid grid-cols-2 gap-3">
                           {breedCardConfig.physicalTraits.map((trait) => {
                             const IconComponent = trait.icon;
                             return (
-                              <div
-                                key={trait.key}
-                                className="flex items-start gap-2"
-                              >
+                              <div key={trait.key} className="flex items-start gap-2">
                                 <IconComponent className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                                 <div className="min-w-0">
-                                  <p className="text-xs text-gray-500">
-                                    {trait.label}
-                                  </p>
+                                  <p className="text-xs text-gray-500">{trait.label}</p>
                                   <p className="text-sm font-medium text-gray-900">
                                     {breed.physicalTraits[trait.key]}
                                   </p>
@@ -933,18 +655,12 @@ const DogLibrary = () => {
                           {breedCardConfig.measurements.map((measure) => {
                             const IconComponent = measure.icon;
                             return (
-                              <div
-                                key={measure.key}
-                                className="flex items-start gap-2"
-                              >
+                              <div key={measure.key} className="flex items-start gap-2">
                                 <IconComponent className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                                 <div>
-                                  <p className="text-xs text-gray-500">
-                                    {measure.label}
-                                  </p>
+                                  <p className="text-xs text-gray-500">{measure.label}</p>
                                   <p className="text-sm font-medium text-gray-900">
-                                    {breed.measurements[measure.key]}{" "}
-                                    {measure.unit}
+                                    {breed.measurements[measure.key]} {measure.unit}
                                   </p>
                                 </div>
                               </div>
@@ -963,9 +679,7 @@ const DogLibrary = () => {
                                 <div className="flex justify-center mb-1">
                                   <IconComponent className="w-4 h-4 text-blue-600" />
                                 </div>
-                                <p className="text-xs text-gray-500 mb-0.5">
-                                  {char.label}
-                                </p>
+                                <p className="text-xs text-gray-500 mb-0.5">{char.label}</p>
                                 <p className="text-sm font-medium text-gray-900">
                                   {breed.characteristics[char.key]}
                                   {char.unit && ` ${char.unit}`}
@@ -985,12 +699,8 @@ const DogLibrary = () => {
             {!loading && filteredBreeds.length === 0 && (
               <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                 <Dog className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No breeds found
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Try adjusting your filters or search term
-                </p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No breeds found</h3>
+                <p className="text-gray-600 mb-6">Try adjusting your filters or search term</p>
                 <button
                   onClick={clearFilters}
                   className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -1016,11 +726,9 @@ const DogLibrary = () => {
           >
             <X className="w-6 h-6" />
           </button>
-
           <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-lg">
             <p className="text-white font-semibold">{imageViewer.name}</p>
           </div>
-
           <div
             className="relative max-w-5xl max-h-[85vh] w-full"
             onClick={(e) => e.stopPropagation()}
@@ -1031,14 +739,17 @@ const DogLibrary = () => {
               className="w-full h-full object-fill rounded-lg shadow-2xl"
             />
           </div>
-
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-lg">
-            <p className="text-white text-sm">
-              Click anywhere to close • Press ESC
-            </p>
+            <p className="text-white text-sm">Click anywhere to close • Press ESC</p>
           </div>
         </div>
       )}
+
+      <BreedCompareModal
+        open={compareOpen}
+        onClose={() => setCompareOpen(false)}
+        breeds={breeds}
+      />
     </div>
   );
 };

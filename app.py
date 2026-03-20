@@ -165,21 +165,22 @@ else:
     log.info("EAGER_LOAD_SCAN_MODELS=false; scan models will load on first use")
 
 # Assistant RAG config
-ASSISTANT_INDEX_DIR = os.path.join(MODELS_DIR, "assistant_index")
-ASSISTANT_BREEDS_JSON = os.path.join(BASE_DIR, "frontend", "public", "image", "complete_dog_breeds.json")
-ASSISTANT_SYSTEM_GUIDE = os.path.join(BASE_DIR, "backend", "knowledge", "system_guide.md")
-ASSISTANT_MODEL_NAME = os.getenv("ASSISTANT_MODEL_NAME", "llama3.2-lite") # MODEL
-ASSISTANT_EMBED_MODEL_NAME = os.getenv("ASSISTANT_EMBED_MODEL_NAME", "BAAI/bge-small-en-v1.5")
-ASSISTANT_TOP_K = max(2, int(os.getenv("ASSISTANT_TOP_K", "2")))
-ASSISTANT_CONTEXT_WINDOW = _get_env_int("ASSISTANT_CONTEXT_WINDOW", 2048, 256)
-ASSISTANT_MAX_OUTPUT_TOKENS = _get_env_int("ASSISTANT_MAX_OUTPUT_TOKENS", 256, 16)
-ASSISTANT_KEEP_ALIVE = os.getenv("ASSISTANT_KEEP_ALIVE", "30s").strip() or "30s"
-ASSISTANT_HISTORY_TURNS = _get_env_int("ASSISTANT_HISTORY_TURNS", 6, 1)
-ASSISTANT_HISTORY_CHARS = _get_env_int("ASSISTANT_HISTORY_CHARS", 500, 64)
-ASSISTANT_SCAN_CONTEXT_CHARS = _get_env_int("ASSISTANT_SCAN_CONTEXT_CHARS", 3000, 256)
+ASSISTANT_INDEX_DIR          = os.path.join(MODELS_DIR, "assistant_index")
+ASSISTANT_BREEDS_JSON        = os.path.join(BASE_DIR, "frontend", "public", "image", "complete_dog_breeds.json")
+ASSISTANT_SYSTEM_GUIDE       = os.path.join(BASE_DIR, "backend", "knowledge", "system_guide.md")
+ASSISTANT_MODEL_NAME         = "llama3.2-lite"
+ASSISTANT_EMBED_MODEL_NAME   = "BAAI/bge-small-en-v1.5"
+ASSISTANT_TOP_K              = 4
+ASSISTANT_CONTEXT_WINDOW     = 2048
+ASSISTANT_MAX_OUTPUT_TOKENS  = 256
+ASSISTANT_KEEP_ALIVE         = "30s"
+ASSISTANT_HISTORY_TURNS      = 6
+ASSISTANT_HISTORY_CHARS      = 500
+ASSISTANT_SCAN_CONTEXT_CHARS = 6000
 
 ASSISTANT_QUERY_ENGINE = None
 ASSISTANT_INIT_ERROR = None
+ASSISTANT_LLM = None
 
 
 def _build_assistant_docs():
@@ -222,6 +223,7 @@ def _build_assistant_docs():
 def _init_assistant():
     global ASSISTANT_QUERY_ENGINE
     global ASSISTANT_INIT_ERROR
+    global ASSISTANT_LLM
 
     try:
         from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
@@ -235,6 +237,8 @@ def _init_assistant():
             keep_alive=ASSISTANT_KEEP_ALIVE,
             additional_kwargs={"num_predict": ASSISTANT_MAX_OUTPUT_TOKENS},
         )
+
+        ASSISTANT_LLM = llm
         embed = HuggingFaceEmbedding(model_name=ASSISTANT_EMBED_MODEL_NAME)
 
         if os.path.isdir(ASSISTANT_INDEX_DIR) and os.listdir(ASSISTANT_INDEX_DIR):
@@ -280,6 +284,29 @@ def _compact_scan_context(scan_context: Any) -> str:
     if not isinstance(scan_context, dict):
         return ""
 
+    # ── Breed comparison from the compare modal ──
+    if scan_context.get("type") == "breed_comparison":
+        breeds = scan_context.get("breeds", [])
+        if not isinstance(breeds, list) or not breeds:
+            return ""
+        lines = [
+            f"The user is comparing {len(breeds)} breeds: "
+            f"{', '.join(b.get('name', '') for b in breeds if isinstance(b, dict))}\n"
+        ]
+        for b in breeds:
+            if not isinstance(b, dict):
+                continue
+            lines.append(
+                f"Breed: {b.get('name', '?')}\n"
+                f"  Size: {b.get('size', '?')} | Origin: {b.get('origin', '?')} | Group: {b.get('group', '?')}\n"
+                f"  Lifespan: {b.get('lifespan', '?')} yrs | Height: {b.get('height', '?')} in | Weight: {b.get('weight', '?')} lbs\n"
+                f"  Temperament: {', '.join(b.get('temperament') or [])}\n"
+                f"  Health: {', '.join(b.get('healthConsiderations') or [])}\n"
+                f"  Description: {b.get('description', '')}"
+            )
+        return _clip_text("\n".join(lines), ASSISTANT_SCAN_CONTEXT_CHARS)
+
+    # ── Original scan handling (breed/disease scans) ──
     compact: dict[str, Any] = {}
     scan_type = str(scan_context.get("scan_type", "")).strip().lower()
     if scan_type in {"breed", "disease"}:
@@ -383,8 +410,26 @@ def generate_assistant_reply(message: str, thread_type: str, scan_context: Any, 
         raise RuntimeError(ASSISTANT_INIT_ERROR or "Assistant engine not initialized.")
 
     prompt = _build_assistant_prompt(message, thread_type, scan_context, history)
-    response = ASSISTANT_QUERY_ENGINE.query(prompt)
-    text = str(response).strip()
+
+    is_breed_compare = (
+        isinstance(scan_context, dict)
+        and scan_context.get("type") == "breed_comparison"
+    )
+
+    try:
+        if is_breed_compare:
+            log.info("=== breed_comparison: bypassing RAG, calling LLM directly")
+            if ASSISTANT_LLM is None:
+                raise RuntimeError("LLM not initialized.")
+            response = ASSISTANT_LLM.complete(prompt)
+            text = str(response).strip()
+        else:
+            response = ASSISTANT_QUERY_ENGINE.query(prompt)
+            text = str(response).strip()
+    except Exception as e:
+        log.exception("=== LLM call failed: %s", str(e))
+        raise
+
     if not text:
         raise RuntimeError("Assistant returned an empty response.")
     return text
@@ -490,7 +535,7 @@ def analyze_breed(preds):
     if entropy > UNCERTAIN_THRESHOLDS["entropy"]:   is_mixed     = True;  reasons.append(f"high_entropy ({entropy:.2f})")
 
     is_pure    = p1 >= MIXED_BREED_SETTINGS["confident_threshold"]
-    mix_pct    = (top_probs / topk_sum * 100.0) if topk_sum > 0 else np.zeros(TOP_K)
+    mix_pct = top_probs * 100.0
     top_breeds = []
 
     for i, (idx, pct) in enumerate(zip(top_idx, mix_pct)):
@@ -506,8 +551,7 @@ def analyze_breed(preds):
             "class_name":   entry.get("class_name", ""),
             "display_name": entry.get("display_name", ""),
             "breed_id":     entry.get("breed_id"),
-            "confidence":   round(raw * 100, 2),
-            "mix_share":    round(float(pct), 1),
+            "confidence":   round(raw * 100, 2)
         })
 
     result_type = "pure_breed" if is_pure else ("mixed_breed" if is_mixed else "uncertain")
@@ -615,6 +659,7 @@ def assistant_chat():
         reply = generate_assistant_reply(message, thread_type, scan_context, history)
         return jsonify({"reply": reply})
     except Exception as e:
+        log.exception("=== generate_assistant_reply FAILED")
         return jsonify({"error": f"Assistant unavailable: {e}"}), 503
 
 

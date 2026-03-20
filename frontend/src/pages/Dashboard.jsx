@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import TopNav from "../components/ui/TopNav";
 import { useToast } from "../components/Toast";
@@ -44,7 +44,7 @@ function mapRecentScan(scan) {
     : [];
   const totalConfidence = predictions.reduce(
     (sum, pred) => sum + Number(pred?.confidence ?? 0),
-    0
+    0,
   );
 
   const topPrediction = predictions[0] || null;
@@ -60,11 +60,13 @@ function mapRecentScan(scan) {
     topPrediction?.mix_share != null
       ? topPrediction.mix_share
       : totalConfidence > 0
-      ? (Number(topPrediction?.confidence ?? 0) / totalConfidence) * 100
-      : 0
+        ? (Number(topPrediction?.confidence ?? 0) / totalConfidence) * 100
+        : 0,
   );
   const origin = topPrediction?.breed_info?.origin || "Unknown";
-  const temperament = normalizeTemperament(topPrediction?.breed_info?.temperament);
+  const temperament = normalizeTemperament(
+    topPrediction?.breed_info?.temperament,
+  );
 
   return {
     id: scan?.id,
@@ -200,8 +202,12 @@ const DashboardPage = () => {
             <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-500 p-8 sm:p-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Welcome back, {user?.username}!</h1>
-                  <p className="text-blue-100 text-lg">Ready to identify some amazing dog breeds?</p>
+                  <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+                    Welcome back, {user?.username}!
+                  </h1>
+                  <p className="text-blue-100 text-lg">
+                    Ready to identify some amazing dog breeds?
+                  </p>
                 </div>
               </div>
             </div>
@@ -217,8 +223,12 @@ const DashboardPage = () => {
                     <div className="flex justify-center mb-2 text-blue-600">
                       <StatIcon className="w-8 h-8" />
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                    <div className="text-sm text-gray-600 mt-1">{stat.label}</div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {stat.value}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {stat.label}
+                    </div>
                   </div>
                 );
               })}
@@ -246,8 +256,12 @@ const DashboardPage = () => {
                     >
                       <ActionIcon className="w-6 h-6" />
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{action.title}</h3>
-                    <p className="text-sm text-gray-600">{action.description}</p>
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {action.title}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {action.description}
+                    </p>
                   </button>
                 );
               })}
@@ -266,32 +280,41 @@ const DashboardPage = () => {
                     {user?.username?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{user?.username}</p>
-                    <p className="text-sm text-gray-600 truncate">{user?.email}</p>
+                    <p className="font-semibold text-gray-900 truncate">
+                      {user?.username}
+                    </p>
+                    <p className="text-sm text-gray-600 truncate">
+                      {user?.email}
+                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">User ID</span>
-                    <span className="text-sm font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded">#{user?.id}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Member since</span>
                     <span className="text-sm font-medium text-gray-900">
                       {user?.created_at
-                        ? new Date(user.created_at).toLocaleDateString("en-US", {
-                            month: "short",
-                            year: "numeric",
-                          })
+                        ? new Date(user.created_at).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              year: "numeric",
+                            },
+                          )
                         : "N/A"}
                     </span>
                   </div>
                 </div>
 
-                <button className="w-full mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium">
+                {/* <button className="w-full mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium">
                   Edit Profile
-                </button>
+                </button> */}
+                <NavLink
+                  to="/profile"
+                  className="block w-full mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium text-center"
+                >
+                  Edit Profile
+                </NavLink>
               </div>
             </div>
           </div>
@@ -348,19 +371,24 @@ const DashboardPage = () => {
                           <Calendar className="w-4 h-4" />
                           <span>
                             {scan.scannedAt
-                              ? new Date(scan.scannedAt).toLocaleString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
+                              ? new Date(scan.scannedAt).toLocaleString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )
                               : "Unknown date"}
                           </span>
                         </div>
 
                         <div className="mt-2 text-sm text-gray-600">
-                          <span className="font-medium text-gray-700">Origin:</span>{" "}
+                          <span className="font-medium text-gray-700">
+                            Origin:
+                          </span>{" "}
                           {scan.origin}
                         </div>
 
@@ -379,7 +407,9 @@ const DashboardPage = () => {
 
                         {scan.topBreedImage && (
                           <div className="mt-3 flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Breed reference:</span>
+                            <span className="text-xs text-gray-500">
+                              Breed reference:
+                            </span>
                             <img
                               src={scan.topBreedImage}
                               alt={scan.breedName}
@@ -405,9 +435,12 @@ const DashboardPage = () => {
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
                   <ScanLine className="w-9 h-9 text-gray-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No scans yet!</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No scans yet!
+                </h3>
                 <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-                  Upload your first dog image to get started with breed identification
+                  Upload your first dog image to get started with breed
+                  identification
                 </p>
                 <button
                   onClick={openScanModal}
@@ -427,8 +460,9 @@ const DashboardPage = () => {
             <div>
               <h3 className="font-semibold text-gray-900 mb-1">Pro Tip</h3>
               <p className="text-sm text-gray-700">
-                For best results, upload clear photos with good lighting where the dog is the main subject. Our AI works
-                best with front or side profile shots.
+                For best results, upload clear photos with good lighting where
+                the dog is the main subject. Our AI works best with front or
+                side profile shots.
               </p>
             </div>
           </div>

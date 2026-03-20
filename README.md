@@ -345,7 +345,7 @@ Backend `.env` must include at least:
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
-- `FLASK_URL` (defaults to `http://localhost:5001` if not set)
+- `FLASK_API_URL` (or `FLASK_URL`) (defaults to `http://localhost:5001` if not set)
 
 Do not commit real credentials/tokens to git.
 

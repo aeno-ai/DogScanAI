@@ -1,10 +1,10 @@
-import { Brain, Heart, Shield, Zap, Dna, Clock, MessageSquare, Stethoscope, History, Lock } from "lucide-react";
+import { Brain, Heart, Shield, Zap, SmilePlus, Clock, MessageSquare, Stethoscope, History, Lock } from "lucide-react";
 
 const publicFeatures = [
   {
     icon: Brain,
     title: "Breed Identification",
-    description: "Instantly identify over 350 dog breeds with our advanced AI recognition technology.",
+    description: "Instantly identify over 121 dog breeds with our advanced AI recognition technology.",
   },
   {
     icon: Heart,
@@ -22,9 +22,9 @@ const publicFeatures = [
     description: "Get accurate results in seconds. No waiting, no complicated processes.",
   },
   {
-    icon: Dna,
-    title: "Mixed Breed Analysis",
-    description: "Find out if the scanned dog may be a mixed breed.",
+    icon: SmilePlus,
+title: "Emotion Detector",
+description: "Reads your dog's facial expressions so you finally know if they're excited to see you — or just excited about dinner."
   },
   {
     icon: Clock,

@@ -57,11 +57,7 @@ function normalizeTemperament(value) {
 }
 
 function getTop1Confidence(scan) {
-  return Number(
-    scan?.predictions?.[0]?.normalized_confidence ??
-    scan?.predictions?.[0]?.confidence ??
-    0
-  );
+   return Number(scan?.predictions?.[0]?.confidence ?? 0);
 }
 
 function getConfidenceColor(confidence) {
@@ -136,17 +132,9 @@ function mapApiScanToUi(scan) {
     });
   }
 
-  const totalConfidence = predictions.reduce((sum, p) => sum + Number(p.confidence ?? 0), 0);
-  const predictionsWithShare = predictions.map((pred) => ({
-    ...pred,
-    normalized_confidence:
-      totalConfidence > 0 ? (Number(pred.confidence ?? 0) / totalConfidence) * 100 : 0,
-  }));
-
-  const top1Confidence = Number(predictionsWithShare[0]?.normalized_confidence ?? predictionsWithShare[0]?.confidence ?? 0);
-  const images = scan?.image_url
+    const top1Confidence = Number(predictions[0]?.confidence ?? 0);  const images = scan?.image_url
     ? [scan.image_url]
-    : [predictionsWithShare[0].breed_info.image_url].filter(Boolean);
+    : [predictions[0].breed_info.image_url].filter(Boolean);
 
   return {
     id: scan?.id,
@@ -156,7 +144,7 @@ function mapApiScanToUi(scan) {
     training_rejection_reason: scan?.training_rejection_reason || null,
     training_reviewed_at: scan?.training_reviewed_at || null,
     images,
-    predictions: predictionsWithShare,
+    predictions,
     created_at: scan?.scanned_at,
   };
 }

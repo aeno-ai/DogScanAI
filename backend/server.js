@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const path = require("path");
-require('dotenv').config();
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 // Import routes
 const authRoutes = require("./routes/auth");
@@ -52,6 +52,7 @@ app.use(express.json()); // Parse JSON bodies
 app.use(cookieParser()); // Parse cookies (for web)
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use('/images', express.static(path.join(__dirname, '..', 'frontend', 'public', 'image', 'breed_library_images')));
 
 
 // ============================================
