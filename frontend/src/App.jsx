@@ -12,6 +12,8 @@ import AdminLayout from "./layouts/AdminLayout";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/auth/Login";
 import SignUpPage from "./pages/auth/Register";
+import ForgotPasswordPage from "./pages/auth/ForgotPassword";
+import ResetPasswordPage from "./pages/auth/ResetPassword";
 import DashboardPage from "./pages/Dashboard";
 import DogLibrary from "./pages/DogLibrary"
 import HistoryPage from "./pages/History";
@@ -33,6 +35,8 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/doglibrary" element={<DogLibrary/>}/>
             <Route path="/contributors" element={<ContributorsPage />} />
             

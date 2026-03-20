@@ -20,6 +20,8 @@ from PIL import Image, ImageOps
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input, decode_predictions
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5000"])
@@ -117,6 +119,62 @@ _SCAN_MODELS = {name: None for name in SCAN_MODEL_PATHS}
 _SCAN_MODELS_LOCK = threading.RLock()
 
 
+# ---------------------------------------------------------------------------
+# Dog Validator — uses MobileNetV2 (ImageNet) to confirm a dog is present.
+# ImageNet dog classes span indices 151–268 (inclusive).
+# ---------------------------------------------------------------------------
+
+# Confidence threshold: combined probability of all dog classes must exceed
+# this value for the image to be accepted as a dog.
+DOG_VALIDATOR_THRESHOLD = float(os.getenv("DOG_VALIDATOR_THRESHOLD", "0.20"))
+
+# ImageNet class range for dogs (Keras decode_predictions uses WordNet IDs,
+# but we check raw index range for speed).
+_IMAGENET_DOG_IDX_MIN = 151
+_IMAGENET_DOG_IDX_MAX = 268  # inclusive
+
+_DOG_VALIDATOR_MODEL = None
+_DOG_VALIDATOR_LOCK  = threading.Lock()
+
+
+def _get_dog_validator():
+    """Lazy-load MobileNetV2 for dog presence detection."""
+    global _DOG_VALIDATOR_MODEL
+    if _DOG_VALIDATOR_MODEL is not None:
+        return _DOG_VALIDATOR_MODEL
+    with _DOG_VALIDATOR_LOCK:
+        if _DOG_VALIDATOR_MODEL is None:
+            log.info("Loading dog validator (MobileNetV2 ImageNet)...")
+            _DOG_VALIDATOR_MODEL = MobileNetV2(weights="imagenet", include_top=True)
+            # warm-up
+            dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
+            _DOG_VALIDATOR_MODEL.predict(dummy, verbose=0)
+            log.info("Dog validator ready (threshold=%.2f)", DOG_VALIDATOR_THRESHOLD)
+    return _DOG_VALIDATOR_MODEL
+
+
+def is_dog_image(pil_img: Image.Image) -> tuple[bool, float]:
+    """
+    Returns (is_dog, dog_score).
+
+    dog_score = sum of MobileNetV2 softmax probabilities for all ImageNet
+    dog classes (indices 151–268).  If dog_score >= DOG_VALIDATOR_THRESHOLD
+    the image is accepted as containing a dog.
+    """
+    validator = _get_dog_validator()
+
+    img = pil_img.convert("RGB").resize((224, 224), Image.LANCZOS)
+    arr = np.expand_dims(np.asarray(img, dtype="float32"), 0)
+    arr = preprocess_input(arr)                          # MobileNetV2 expects [-1, 1]
+
+    preds = validator.predict(arr, verbose=0)[0]         # shape: (1000,)
+
+    dog_score = float(preds[_IMAGENET_DOG_IDX_MIN : _IMAGENET_DOG_IDX_MAX + 1].sum())
+    return dog_score >= DOG_VALIDATOR_THRESHOLD, round(dog_score, 4)
+
+
+# ---------------------------------------------------------------------------
+
 def _warm_model(model):
     input_shape = model.input_shape
     if isinstance(input_shape, list) and input_shape:
@@ -168,7 +226,7 @@ else:
 ASSISTANT_INDEX_DIR = os.path.join(MODELS_DIR, "assistant_index")
 ASSISTANT_BREEDS_JSON = os.path.join(BASE_DIR, "frontend", "public", "image", "complete_dog_breeds.json")
 ASSISTANT_SYSTEM_GUIDE = os.path.join(BASE_DIR, "backend", "knowledge", "system_guide.md")
-ASSISTANT_MODEL_NAME = os.getenv("ASSISTANT_MODEL_NAME", "llama3.2-lite") # MODEL
+ASSISTANT_MODEL_NAME = os.getenv("ASSISTANT_MODEL_NAME", "llama3.2:3b-lite") # MODEL
 ASSISTANT_EMBED_MODEL_NAME = os.getenv("ASSISTANT_EMBED_MODEL_NAME", "BAAI/bge-small-en-v1.5")
 ASSISTANT_TOP_K = max(2, int(os.getenv("ASSISTANT_TOP_K", "2")))
 ASSISTANT_CONTEXT_WINDOW = _get_env_int("ASSISTANT_CONTEXT_WINDOW", 2048, 256)
@@ -525,6 +583,7 @@ def health():
         "eager_load_scan_models": scan_status["eager_load_enabled"],
         "assistant_ready": ASSISTANT_QUERY_ENGINE is not None,
         "assistant_error": ASSISTANT_INIT_ERROR,
+        "dog_validator_threshold": DOG_VALIDATOR_THRESHOLD,
     })
 
 
@@ -533,18 +592,38 @@ def predict_breed():
     body = request.get_json(force=True, silent=True) or {}
     if "image" not in body:
         return jsonify({"error": "Missing 'image' field (base64)"}), 400
+
     try:
         pil_img = decode_image(body["image"])
     except Exception as e:
         return jsonify({"error": f"Image decode failed: {e}"}), 422
+
+    # ── Dog presence validation ──────────────────────────────────────────────
     try:
-        breed_model = _get_scan_model("breed")
+        dog_detected, dog_score = is_dog_image(pil_img)
+        log.info("Breed endpoint — dog_score=%.4f threshold=%.2f accepted=%s",
+                 dog_score, DOG_VALIDATOR_THRESHOLD, dog_detected)
+    except Exception as e:
+        log.exception("Dog validator error (breed)")
+        return jsonify({"error": f"Dog validation failed: {e}"}), 500
+
+    if not dog_detected:
+        return jsonify({
+            "error": "no_dog_detected",
+            "message": "No dog detected in the uploaded image. Please upload a clear photo of a dog.",
+            "dog_score": dog_score,
+            "threshold": DOG_VALIDATOR_THRESHOLD,
+        }), 422
+    # ────────────────────────────────────────────────────────────────────────
+
+    try:
+        breed_model   = _get_scan_model("breed")
         emotion_model = _get_scan_model("emotion")
-        age_model = _get_scan_model("age")
+        age_model     = _get_scan_model("age")
 
         breed_data = analyze_breed(predict_with_tta(pil_img, breed_model))
-        emotion = top1_result(predict_simple(pil_img, emotion_model), EMOTION_LABELS)
-        age = top1_result(predict_simple(pil_img, age_model), AGE_LABELS)
+        emotion    = top1_result(predict_simple(pil_img, emotion_model), EMOTION_LABELS)
+        age        = top1_result(predict_simple(pil_img, age_model), AGE_LABELS)
     except Exception as e:
         log.exception("Inference error (breed)")
         return jsonify({"error": f"Inference failed: {e}"}), 500
@@ -556,6 +635,7 @@ def predict_breed():
         "reasons":     breed_data["reasons"],
         "emotion":     emotion,
         "age":         age,
+        "dog_score":   dog_score,
     })
 
 
@@ -564,10 +644,30 @@ def predict_disease():
     body = request.get_json(force=True, silent=True) or {}
     if "image" not in body:
         return jsonify({"error": "Missing 'image' field (base64)"}), 400
+
     try:
         pil_img = decode_image(body["image"])
     except Exception as e:
         return jsonify({"error": f"Image decode failed: {e}"}), 422
+
+    # ── Dog presence validation ──────────────────────────────────────────────
+    try:
+        dog_detected, dog_score = is_dog_image(pil_img)
+        log.info("Disease endpoint — dog_score=%.4f threshold=%.2f accepted=%s",
+                 dog_score, DOG_VALIDATOR_THRESHOLD, dog_detected)
+    except Exception as e:
+        log.exception("Dog validator error (disease)")
+        return jsonify({"error": f"Dog validation failed: {e}"}), 500
+
+    if not dog_detected:
+        return jsonify({
+            "error": "no_dog_detected",
+            "message": "No dog detected in the uploaded image. Please upload a clear photo of a dog.",
+            "dog_score": dog_score,
+            "threshold": DOG_VALIDATOR_THRESHOLD,
+        }), 422
+    # ────────────────────────────────────────────────────────────────────────
+
     try:
         disease_model = _get_scan_model("disease")
         preds = predict_simple(pil_img, disease_model)
@@ -590,7 +690,11 @@ def predict_disease():
         log.exception("Inference error (disease)")
         return jsonify({"error": f"Inference failed: {e}"}), 500
 
-    return jsonify({"scan_type": "disease", "top_diseases": diseases})
+    return jsonify({
+        "scan_type":    "disease",
+        "top_diseases": diseases,
+        "dog_score":    dog_score,
+    })
 
 
 @app.post("/assistant/chat")

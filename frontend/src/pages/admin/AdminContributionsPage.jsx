@@ -43,7 +43,6 @@ const AdminContributionsPage = () => {
 
   useEffect(() => {
     let mounted = true;
-
     const fetchBreeds = async () => {
       try {
         const { data } = await api.get("/api/breeds");
@@ -54,23 +53,15 @@ const AdminContributionsPage = () => {
         setBreedOptions([]);
       }
     };
-
     fetchBreeds();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   const fetchList = async () => {
     setLoading(true);
     try {
       const { data } = await api.get("/api/admin/contributions", {
-        params: {
-          status,
-          search,
-          page,
-          page_size: pageSize,
-        },
+        params: { status, search, page, page_size: pageSize },
       });
       setItems(Array.isArray(data?.data) ? data.data : []);
       setTotal(Number(data?.pagination?.total || 0));
@@ -93,7 +84,6 @@ const AdminContributionsPage = () => {
       setSelected(null);
       return;
     }
-
     let mounted = true;
     const fetchDetail = async () => {
       setLoadingDetail(true);
@@ -102,7 +92,11 @@ const AdminContributionsPage = () => {
         if (!mounted) return;
         setSelected(data);
         setFinalBreedId(
-          data?.final_breed_id ? String(data.final_breed_id) : data?.model_top1_breed_id ? String(data.model_top1_breed_id) : ""
+          data?.final_breed_id
+            ? String(data.final_breed_id)
+            : data?.model_top1_breed_id
+            ? String(data.model_top1_breed_id)
+            : ""
         );
         setApproveNote(data?.review_reason || "");
         setRejectReason(data?.review_reason || "");
@@ -114,11 +108,8 @@ const AdminContributionsPage = () => {
         if (mounted) setLoadingDetail(false);
       }
     };
-
     fetchDetail();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [selectedId, toast]);
 
   const onApprove = async () => {
@@ -127,7 +118,6 @@ const AdminContributionsPage = () => {
       toast.warning("Pick a final breed before approving.");
       return;
     }
-
     setActing(true);
     try {
       await api.post(`/api/admin/contributions/${selected.id}/approve`, {
@@ -150,7 +140,6 @@ const AdminContributionsPage = () => {
       toast.warning("Reject reason is required.");
       return;
     }
-
     setActing(true);
     try {
       await api.post(`/api/admin/contributions/${selected.id}/reject`, {
@@ -173,9 +162,10 @@ const AdminContributionsPage = () => {
         <p className="text-slate-600">Review user-consented breed scans and accept or reject them.</p>
       </div>
 
+      {/* Filter bar — its own block */}
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
+        <div style={{ display: "flex", flexDirection: "row", gap: "12px", flexWrap: "wrap" }}>
+          <div style={{ position: "relative", flex: 1, minWidth: "200px" }}>
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               value={searchInput}
@@ -186,25 +176,26 @@ const AdminContributionsPage = () => {
           </div>
           <select
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
             className="px-3 py-2 border border-slate-300 rounded-lg bg-white"
           >
             {STATUS_OPTIONS.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
+              <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </select>
         </div>
       </div>
 
-      <div className="grid xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      {/* Two cards — separate block, side by side with flexbox */}
+      <div style={{ display: "flex", flexDirection: "col", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
+
+        {/* Left card — list */}
+        <div
+          className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"
+          style={{ flex: "1.2 1 0", minWidth: "320px" }}
+        >
           {loading ? (
-            <div className="flex items-center justify-center py-20">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
               <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
             </div>
           ) : (
@@ -221,9 +212,7 @@ const AdminContributionsPage = () => {
                 <tbody>
                   {items.length === 0 && (
                     <tr>
-                      <td className="py-8 px-4 text-slate-500" colSpan={4}>
-                        No contributions found.
-                      </td>
+                      <td className="py-8 px-4 text-slate-500" colSpan={4}>No contributions found.</td>
                     </tr>
                   )}
                   {items.map((item) => (
@@ -240,15 +229,13 @@ const AdminContributionsPage = () => {
                       </td>
                       <td className="py-3 px-4 text-slate-700">{item.model_top1_display_name}</td>
                       <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            item.status === "approved"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : item.status === "rejected"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-amber-100 text-amber-700"
-                          }`}
-                        >
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          item.status === "approved"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : item.status === "rejected"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}>
                           {item.status}
                         </span>
                       </td>
@@ -262,11 +249,11 @@ const AdminContributionsPage = () => {
             </div>
           )}
 
-          <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderTop: "1px solid #e2e8f0" }}>
             <p className="text-sm text-slate-500">
               Page {page} of {totalPages} ({total} total)
             </p>
-            <div className="flex gap-2">
+            <div style={{ display: "flex", gap: "8px" }}>
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
@@ -285,17 +272,21 @@ const AdminContributionsPage = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-6">
+        {/* Right card — detail */}
+        <div
+          className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-6"
+          style={{ flex: "1 1 0", minWidth: "280px" }}
+        >
           {!selectedId ? (
             <p className="text-sm text-slate-500">Select a contribution to inspect and review.</p>
           ) : loadingDetail ? (
-            <div className="flex items-center justify-center py-20">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0" }}>
               <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
             </div>
           ) : !selected ? (
             <p className="text-sm text-slate-500">Failed to load selected contribution.</p>
           ) : (
-            <div className="space-y-4">
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div className="aspect-[4/3] rounded-xl bg-slate-100 overflow-hidden">
                 <img src={selected.source_image_url} alt="Contribution" className="w-full h-full object-cover" />
               </div>
@@ -309,12 +300,10 @@ const AdminContributionsPage = () => {
 
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Original predictions</p>
-                <div className="space-y-2 max-h-40 overflow-auto pr-1">
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "160px", overflowY: "auto", paddingRight: "4px" }}>
                   {(Array.isArray(selected.original_predictions) ? selected.original_predictions : []).map((pred) => (
                     <div key={`${pred.rank}-${pred.class_name}`} className="bg-slate-50 rounded-lg p-2 text-sm">
-                      <p className="font-medium text-slate-900">
-                        #{pred.rank} {pred.display_name || pred.class_name}
-                      </p>
+                      <p className="font-medium text-slate-900">#{pred.rank} {pred.display_name || pred.class_name}</p>
                       <p className="text-slate-500">{Number(pred.confidence || 0).toFixed(1)}%</p>
                     </div>
                   ))}
@@ -322,7 +311,7 @@ const AdminContributionsPage = () => {
               </div>
 
               {selected.status === "pending" ? (
-                <div className="space-y-3 pt-2 border-t border-slate-200">
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingTop: "8px", borderTop: "1px solid #e2e8f0" }}>
                   <label className="block text-sm text-slate-700">
                     Final breed
                     <select
@@ -332,9 +321,7 @@ const AdminContributionsPage = () => {
                     >
                       <option value="">Select breed</option>
                       {breedOptions.map((breed) => (
-                        <option key={breed.breed_id} value={breed.breed_id}>
-                          {breed.display_name}
-                        </option>
+                        <option key={breed.breed_id} value={breed.breed_id}>{breed.display_name}</option>
                       ))}
                     </select>
                   </label>
@@ -359,7 +346,7 @@ const AdminContributionsPage = () => {
                     />
                   </label>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                     <button
                       onClick={onApprove}
                       disabled={acting}
@@ -379,7 +366,7 @@ const AdminContributionsPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="pt-2 border-t border-slate-200 text-sm text-slate-700 space-y-1">
+                <div style={{ paddingTop: "8px", borderTop: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: "4px" }} className="text-sm text-slate-700">
                   <p>Status: <span className="font-semibold capitalize">{selected.status}</span></p>
                   {selected.review_reason && <p>Review note: {selected.review_reason}</p>}
                   {selected.reviewed_at && <p>Reviewed at: {new Date(selected.reviewed_at).toLocaleString()}</p>}
@@ -388,6 +375,7 @@ const AdminContributionsPage = () => {
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

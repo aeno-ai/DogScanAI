@@ -155,7 +155,6 @@ function isDbUnavailable(err) {
   return DB_UNAVAILABLE_CODES.has(err?.code);
 }
 
-
 function handleDbError(err, res, context) {
   if (isDbUnavailable(err)) {
     return res.status(503).json({ error: "Database unavailable. Please try again." });
@@ -326,6 +325,20 @@ router.post("/public/breed", enforcePublicScanLimit, upload.single("image"), (re
 router.post("/public/disease", (_req, res) =>
   res.status(401).json({ error: "Login required for disease scan." })
 );
+
+// Standalone image upload endpoint used by Android app
+router.post("/upload", auth, upload.single("image"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No image uploaded" });
+
+  try {
+    const imageUrl = await saveUploadedScanImage(req.file, req);
+    if (!imageUrl) return res.status(500).json({ error: "Failed to save image" });
+    return res.json({ success: true, image_url: imageUrl });
+  } catch (err) {
+    console.error("[scans/upload] Error:", err.message);
+    return res.status(500).json({ error: "Image upload failed" });
+  }
+});
 
 router.post("/breed", auth, upload.single("image"), (req, res) =>
   runScan("/predict/breed", req, res, buildBreedPayload)
@@ -559,6 +572,69 @@ router.get("/", auth, async (req, res) => {
       return res.json([]);
     }
     return handleDbError(err, res, "scans:list");
+  }
+});
+
+// ✅ Contribute existing saved scan — marks as pending without creating a duplicate record
+router.patch("/:id/contribute", auth, async (req, res) => {
+  const userId = req.user?.userId ?? req.user?.id;
+  const scanId = Number(req.params.id);
+
+  if (!Number.isInteger(scanId) || scanId <= 0) {
+    return res.status(400).json({ error: "Invalid scan id" });
+  }
+
+  let client;
+  try {
+    client = await db.connect();
+
+    // Verify ownership
+    const scan = await client.query(
+      `SELECT id, image_url FROM scan_history WHERE id = $1 AND user_id = $2`,
+      [scanId, userId]
+    );
+    if (scan.rows.length === 0) {
+      return res.status(404).json({ error: "Scan not found" });
+    }
+
+    // Get top prediction for this scan
+    const pred = await client.query(
+      `SELECT breed_id, class_name, display_name, confidence
+       FROM scan_predictions
+       WHERE scan_id = $1
+       ORDER BY rank ASC
+       LIMIT 1`,
+      [scanId]
+    );
+    const top = pred.rows[0];
+
+    // Upsert contribution — if already contributed, reset to pending
+    await client.query(
+      `INSERT INTO scan_contributions (
+        scan_id, user_id, status,
+        source_image_url, original_predictions,
+        model_top1_breed_id, model_top1_class_name,
+        model_top1_display_name, model_top1_confidence
+      ) VALUES ($1, $2, 'pending', $3, '[]'::jsonb, $4, $5, $6, $7)
+      ON CONFLICT (scan_id) DO UPDATE SET
+        status = 'pending',
+        updated_at = NOW()`,
+      [
+        scanId,
+        userId,
+        scan.rows[0].image_url,
+        top?.breed_id ?? null,
+        top?.class_name ?? "unknown",
+        top?.display_name ?? "Unknown",
+        Number(top?.confidence ?? 0),
+      ]
+    );
+
+    return res.json({ success: true, scan_id: scanId });
+  } catch (err) {
+    return handleDbError(err, res, "scans:contribute");
+  } finally {
+    if (client) client.release();
   }
 });
 
