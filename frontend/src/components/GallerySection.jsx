@@ -11,15 +11,15 @@ const galleryItems = [
   },
   {
     image: dogScan2,
-    breed: "Siberian Husky",
-    confidence: "99%",
-    traits: ["Energetic", "Loyal", "Independent"],
+    breed: "Shih Tzu",
+    confidence: "92.3%",
+    traits: ["Affectionate", "Outgoing", "Playful"],
   },
   {
     image: dogScan3,
-    breed: "Mixed Breed",
-    confidence: "95%",
-    traits: ["Friendly", "Active", "Intelligent"],
+    breed: "Afghan Hound",
+    confidence: "87.3%",
+    traits: ["Aloof", "Independent", "clownish"],
   },
 ];
 

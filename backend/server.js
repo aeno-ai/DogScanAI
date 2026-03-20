@@ -34,6 +34,26 @@ const corsAllowList = new Set([
 ]);
 const localhostOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/i;
 
+const extraOrigins = new Set();
+const rawAllowList = process.env.CORS_ALLOW_ORIGINS || "";
+rawAllowList
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean)
+  .forEach((origin) => extraOrigins.add(origin));
+
+const urlSources = [process.env.FRONTEND_URL, process.env.RESET_PASSWORD_URL];
+urlSources.forEach((value) => {
+  if (!value) return;
+  try {
+    extraOrigins.add(new URL(value).origin);
+  } catch {
+    // ignore invalid URLs
+  }
+});
+
+extraOrigins.forEach((origin) => corsAllowList.add(origin));
+
 app.use(
   cors({
     origin: (origin, cb) => {
@@ -52,6 +72,8 @@ app.use(express.json()); // Parse JSON bodies
 app.use(cookieParser()); // Parse cookies (for web)
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use('/images', express.static(path.join(__dirname, '..', 'frontend', 'public', 'image', 'breed_library_images')));
+
 app.use('/images', express.static(path.join(__dirname, '..', 'frontend', 'public', 'image', 'breed_library_images')));
 
 

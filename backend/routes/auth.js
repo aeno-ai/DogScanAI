@@ -1,11 +1,33 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const {
+  getTransporter,
+  getFromAddress,
+  isEmailEnabled,
+} = require("../utils/mailer");
 
 const router = express.Router();
 
 // file imports
 const pool = require("../config/database");
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RESET_TOKEN_BYTES = 32;
+const RESET_TOKEN_TTL_MINUTES = Math.max(
+  15,
+  Number(process.env.RESET_TOKEN_TTL_MINUTES || 60)
+);
+const APP_NAME = process.env.APP_NAME || "DogScan AI";
+const RESET_PASSWORD_URL_BASE =
+  process.env.RESET_PASSWORD_URL ||
+  process.env.FRONTEND_URL ||
+  "http://localhost:5173/reset-password";
+const RETURN_RESET_TOKEN =
+  process.env.RETURN_RESET_TOKEN === "true" || process.env.NODE_ENV !== "production";
+const REQUIRE_RESET_EMAIL =
+  process.env.REQUIRE_RESET_EMAIL === "true" || process.env.NODE_ENV === "production";
 
 function buildTokenPayload(user) {
   return {
@@ -30,6 +52,16 @@ function serializeUser(user) {
     is_banned: Boolean(user.is_banned),
     banned_until: user.banned_until,
   };
+}
+
+function normalizeEmail(raw) {
+  if (typeof raw !== "string") return "";
+  return raw.trim().toLowerCase();
+}
+
+function buildResetUrl(token) {
+  const separator = RESET_PASSWORD_URL_BASE.includes("?") ? "&" : "?";
+  return `${RESET_PASSWORD_URL_BASE}${separator}token=${encodeURIComponent(token)}`;
 }
 
 async function unbanIfExpired(client, user) {
@@ -197,6 +229,190 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Server error during login" });
+  } finally {
+    client.release();
+  }
+});
+
+// ============================================
+// FORGOT PASSWORD ENDPOINT
+// ============================================
+router.post("/forgot-password", async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  if (!email || !EMAIL_REGEX.test(email)) {
+    return res.status(400).json({ error: "Please provide a valid email address." });
+  }
+
+  const genericResponse = {
+    message: "If that email exists, a password reset link has been sent.",
+  };
+
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      `SELECT id, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json(genericResponse);
+    }
+
+    const user = result.rows[0];
+    const token = crypto.randomBytes(RESET_TOKEN_BYTES).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000);
+
+    await client.query(
+      `INSERT INTO password_reset_tokens
+       (user_id, token_hash, expires_at, request_ip, request_user_agent)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        user.id,
+        tokenHash,
+        expiresAt,
+        req.ip || null,
+        req.headers["user-agent"] || null,
+      ]
+    );
+
+    const resetUrl = buildResetUrl(token);
+    let mailSent = false;
+    if (isEmailEnabled()) {
+      try {
+        const transporter = await getTransporter();
+        if (transporter) {
+          const subject = `${APP_NAME} password reset`;
+          const text = [
+            `We received a request to reset your ${APP_NAME} password.`,
+            "",
+            "Use the link below to set a new password:",
+            resetUrl,
+            "",
+            `This link expires in ${RESET_TOKEN_TTL_MINUTES} minutes.`,
+            "If you did not request this, you can ignore this email.",
+          ].join("\n");
+          const html = `
+            <p>We received a request to reset your <strong>${APP_NAME}</strong> password.</p>
+            <p><a href="${resetUrl}">Click here to reset your password</a></p>
+            <p>This link expires in ${RESET_TOKEN_TTL_MINUTES} minutes.</p>
+            <p>If you did not request this, you can ignore this email.</p>
+          `;
+
+          await transporter.sendMail({
+            from: getFromAddress(),
+            to: user.email,
+            subject,
+            text,
+            html,
+          });
+          mailSent = true;
+        }
+      } catch (error) {
+        console.error("Reset email error:", error);
+        if (REQUIRE_RESET_EMAIL) {
+          return res.status(500).json({ error: "Failed to send reset email." });
+        }
+      }
+    } else if (REQUIRE_RESET_EMAIL) {
+      return res.status(500).json({ error: "Email service not configured." });
+    }
+
+    if (RETURN_RESET_TOKEN && !mailSent) {
+      return res.json({ ...genericResponse, reset_url: resetUrl });
+    }
+
+    return res.json(genericResponse);
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return res.status(500).json({ error: "Server error while requesting reset." });
+  } finally {
+    client.release();
+  }
+});
+
+// ============================================
+// RESET PASSWORD ENDPOINT
+// ============================================
+router.post("/reset-password", async (req, res) => {
+  const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+  const newPassword = typeof req.body?.password === "string" ? req.body.password : "";
+
+  if (!token) {
+    return res.status(400).json({ error: "Reset token is required." });
+  }
+  if (!newPassword || newPassword.length < 8) {
+    return res
+      .status(400)
+      .json({ error: "Password must be at least 8 characters." });
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(
+      `SELECT prt.id, prt.user_id, prt.expires_at, prt.used_at, u.password_hash
+       FROM password_reset_tokens prt
+       JOIN users u ON u.id = prt.user_id
+       WHERE prt.token_hash = $1
+       LIMIT 1`,
+      [tokenHash]
+    );
+
+    if (result.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Invalid or expired reset token." });
+    }
+
+    const row = result.rows[0];
+    const expiresAt = row.expires_at ? new Date(row.expires_at) : null;
+    if (row.used_at || !expiresAt || expiresAt.getTime() <= Date.now()) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Invalid or expired reset token." });
+    }
+
+    const isSameAsCurrent = await bcrypt.compare(newPassword, row.password_hash);
+    if (isSameAsCurrent) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "New password must be different from current password.",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await client.query(
+      `UPDATE users
+       SET password_hash = $1,
+           password_changed_at = NOW(),
+           session_version = session_version + 1,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [passwordHash, row.user_id]
+    );
+
+    await client.query(
+      `UPDATE password_reset_tokens
+       SET used_at = NOW(),
+           used_ip = $1
+       WHERE id = $2`,
+      [req.ip || null, row.id]
+    );
+
+    await client.query(
+      `UPDATE password_reset_tokens
+       SET used_at = NOW()
+       WHERE user_id = $1 AND used_at IS NULL AND id <> $2`,
+      [row.user_id, row.id]
+    );
+
+    await client.query("COMMIT");
+    return res.json({ success: true, message: "Password updated successfully." });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Reset password error:", error);
+    return res.status(500).json({ error: "Server error while resetting password." });
   } finally {
     client.release();
   }
