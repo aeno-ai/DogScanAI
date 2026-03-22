@@ -8,19 +8,31 @@ import {
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import DogEyeTracker from "../../components/dog-eye-tracker";
+import GoogleAuthButton from "../../components/auth/GoogleAuthButton";
+import AuthPolicyModal from "../../components/auth/AuthPolicyModal";
+import { useToast } from "../../components/Toast";
+
+const TERMS_ACCEPTANCE_REQUIRED = "TERMS_ACCEPTANCE_REQUIRED";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { login, user } = useAuth();
+  const { login, loginWithGoogle, getAuthPolicy, user } = useAuth();
+  const toast = useToast();
 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [infoNotice, setInfoNotice] = useState("");
   const [banNotice, setBanNotice] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [policy, setPolicy] = useState(null);
+  const [policyOpen, setPolicyOpen] = useState(false);
+  const [policyLoading, setPolicyLoading] = useState(false);
+  const [policySubmitting, setPolicySubmitting] = useState(false);
+  const [pendingGoogleCredential, setPendingGoogleCredential] = useState(null);
 
   const redirectPath = useMemo(() => {
     const stateFrom = location.state?.from;
@@ -99,6 +111,118 @@ const LoginPage = () => {
     }
   };
 
+  const loadPolicy = async () => {
+    if (policy) {
+      return policy;
+    }
+
+    setPolicyLoading(true);
+    try {
+      const nextPolicy = await getAuthPolicy();
+      setPolicy(nextPolicy);
+      return nextPolicy;
+    } catch {
+      setError("Failed to load the account agreement. Please try again.");
+      return null;
+    } finally {
+      setPolicyLoading(false);
+    }
+  };
+
+  const completeGoogleSignIn = async (credential, policyAcceptance = null) => {
+    const result = await loginWithGoogle(credential, policyAcceptance);
+
+    if (result.success) {
+      if (
+        result.google_auth_status === "linked_existing" ||
+        result.google_auth_status === "created_new"
+      ) {
+        toast.success(result.google_auth_message || "Signed in with Google.");
+      }
+
+      const explicitRedirect = location.state?.from
+        ? `${location.state.from.pathname || ""}${location.state.from.search || ""}`
+        : searchParams.get("redirect") || "";
+      const nextPath = explicitRedirect.startsWith("/")
+        ? explicitRedirect
+        : result?.user?.is_admin
+        ? "/admin/overview"
+        : "/dashboard";
+
+      navigate(nextPath, { replace: true });
+      return result;
+    }
+
+    if (result.code === "ACCOUNT_BANNED") {
+      setBanNotice({
+        reason: result.ban_reason || "No reason provided.",
+        until: result.banned_until || null,
+      });
+      return result;
+    }
+
+    if (result.code === TERMS_ACCEPTANCE_REQUIRED) {
+      const nextPolicy = await loadPolicy();
+      if (nextPolicy) {
+        setPendingGoogleCredential(credential);
+        setPolicyOpen(true);
+      }
+      return result;
+    }
+
+    setError(result.error || "Google sign-in failed.");
+    return result;
+  };
+
+  const handleGoogleCredential = async (response) => {
+    const credential = response?.credential;
+    if (!credential) {
+      setError("Google sign-in did not return a credential.");
+      return;
+    }
+
+    setError("");
+    setBanNotice(null);
+    setGoogleLoading(true);
+
+    try {
+      await completeGoogleSignIn(credential);
+    } catch {
+      setError("An unexpected error occurred");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handlePolicyAccept = async () => {
+    if (!policy || !pendingGoogleCredential) return;
+
+    setPolicySubmitting(true);
+    setError("");
+    try {
+      const result = await completeGoogleSignIn(pendingGoogleCredential, {
+        policy_key: policy.policy_key,
+        policy_version: policy.policy_version,
+        accept_terms: true,
+      });
+
+      if (result?.success) {
+        setPolicyOpen(false);
+        setPendingGoogleCredential(null);
+      }
+    } catch {
+      setError("An unexpected error occurred");
+    } finally {
+      setPolicySubmitting(false);
+    }
+  };
+
+  const closePolicyModal = () => {
+    if (policySubmitting) return;
+    setPolicyOpen(false);
+    setPendingGoogleCredential(null);
+  };
+
   const formatBanUntil = (value) => {
     if (!value) return "Unknown";
     const parsed = new Date(value);
@@ -113,8 +237,8 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4">
-      <div className="w-full max-w-5xl min-h-[560px] bg-white rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-[30%_70%]">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="w-full max-w-5xl min-h-[560px] bg-white rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-[30%_70%] dark:bg-slate-900 dark:border dark:border-slate-800">
         <div className="bg-blue-600 flex flex-col items-center justify-center px-6 py-12 text-white">
             <h1 className="text-2xl font-extrabold tracking-wide">
               DOGSCAN AI
@@ -127,22 +251,22 @@ const LoginPage = () => {
 
         <div className="p-12 flex flex-col justify-center">
           <div className="mb-8">
-            <h1 className="text-2xl font-extrabold text-gray-800 tracking-wide">
+            <h1 className="text-2xl font-extrabold text-gray-800 tracking-wide dark:text-slate-100">
               LOGIN
             </h1>
-            <p className="text-gray-600 mt-1 text-sm">
+            <p className="text-gray-600 mt-1 text-sm dark:text-slate-400">
               Login to access your DogScanAI account
             </p>
           </div>
 
           {infoNotice && (
-            <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg">
+            <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg dark:border-blue-900/60 dark:bg-blue-950/50 dark:text-blue-200">
               <p className="text-sm">{infoNotice}</p>
             </div>
           )}
 
           {banNotice && (
-            <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg">
+            <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
               <p className="text-sm font-semibold">Your account is temporarily banned.</p>
               <p className="text-sm mt-1">
                 <span className="font-medium">Reason:</span> {banNotice.reason}
@@ -154,7 +278,7 @@ const LoginPage = () => {
           )}
 
           {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
               <p className="text-sm">{error}</p>
             </div>
           )}
@@ -163,7 +287,7 @@ const LoginPage = () => {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300"
               >
                 Email Address
               </label>
@@ -176,14 +300,14 @@ const LoginPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Enter your email"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300"
               >
                 Password
               </label>
@@ -197,12 +321,12 @@ const LoginPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Enter your password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -214,7 +338,7 @@ const LoginPage = () => {
               <div className="mt-2 text-right">
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-sm text-blue-600 hover:underline dark:text-blue-400"
                 >
                   Forgot password?
                 </Link>
@@ -223,16 +347,21 @@ const LoginPage = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || googleLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Logging in..." : "Login"}
             </button>
 
-            <div className="flex items-center justify-between text-sm text-gray-600">
+            <GoogleAuthButton
+              onCredential={handleGoogleCredential}
+              disabled={loading || googleLoading}
+            />
+
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-slate-400">
               <Link
                 to="/"
-                className="flex items-center gap-1 hover:text-blue-600"
+                className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 <svg
                   className="w-4 h-4"
@@ -253,7 +382,7 @@ const LoginPage = () => {
                 Don&apos;t have an account?{" "}
                 <Link
                   to="/signup"
-                  className="font-semibold text-blue-600 hover:underline"
+                  className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
                 >
                   Sign up
                 </Link>
@@ -262,6 +391,16 @@ const LoginPage = () => {
           </form>
         </div>
       </div>
+
+      <AuthPolicyModal
+        isOpen={policyOpen}
+        policy={policy}
+        loading={policyLoading}
+        submitting={policySubmitting}
+        confirmLabel="Agree and Create Account"
+        onClose={closePolicyModal}
+        onAccept={handlePolicyAccept}
+      />
     </div>
   );
 };

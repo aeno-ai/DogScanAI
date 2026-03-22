@@ -1,5 +1,10 @@
 const jwt = require("jsonwebtoken");
 const pool = require("../config/database");
+const {
+  buildAuthProviders,
+  getUserAuthStateById,
+  unbanIfExpired,
+} = require("../utils/auth-helpers");
 
 function readToken(req) {
   return (
@@ -23,44 +28,19 @@ async function authenticateToken(req, res, next) {
       return res.status(401).json({ error: "Invalid token payload" });
     }
 
-    const result = await pool.query(
-      `SELECT
-        id, email, username, is_admin, is_superadmin,
-        session_version, is_banned, banned_until, ban_reason
-       FROM users
-       WHERE id = $1`,
-      [userId]
-    );
-
-    if (result.rows.length === 0) {
+    const initialUser = await getUserAuthStateById(pool, userId);
+    if (!initialUser) {
       return res.status(401).json({ error: "User not found" });
     }
 
-    const user = result.rows[0];
+    const user = await unbanIfExpired(pool, initialUser);
     if (user.is_banned) {
-      const banEnd = user.banned_until ? new Date(user.banned_until) : null;
-      const banEndTime = banEnd ? banEnd.getTime() : NaN;
-      const hasExpired = !banEnd || Number.isNaN(banEndTime) || banEndTime <= Date.now();
-
-      if (hasExpired) {
-        await pool.query(
-          `UPDATE users
-           SET is_banned = FALSE,
-               banned_until = NULL,
-               ban_reason = NULL,
-               banned_at = NULL,
-               banned_by = NULL
-           WHERE id = $1`,
-          [user.id]
-        );
-      } else {
-        return res.status(403).json({
-          error: "Your account is banned.",
-          code: "ACCOUNT_BANNED",
-          banned_until: user.banned_until,
-          ban_reason: user.ban_reason || null,
-        });
-      }
+      return res.status(403).json({
+        error: "Your account is banned.",
+        code: "ACCOUNT_BANNED",
+        banned_until: user.banned_until,
+        ban_reason: user.ban_reason || null,
+      });
     }
 
     const tokenSessionVersion = Number(decoded?.sv ?? 1);
@@ -77,6 +57,7 @@ async function authenticateToken(req, res, next) {
       is_admin: Boolean(user.is_admin),
       is_superadmin: Boolean(user.is_superadmin),
       session_version: Number(user.session_version ?? 1),
+      auth_providers: buildAuthProviders(user),
     };
 
     return next();

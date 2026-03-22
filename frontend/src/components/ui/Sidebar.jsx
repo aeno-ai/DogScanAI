@@ -28,32 +28,32 @@ const Sidebar = ({ open, onOpen, onClose, onLogout }) => {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 overflow-hidden shadow-xl transition-all duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 overflow-hidden shadow-xl transition-all duration-300 dark:bg-slate-950 dark:border-slate-800 ${
           open ? "w-64" : "w-0 md:w-20"
         }`}
       >
-        <div className={`border-b border-slate-200 h-16 flex items-center ${open ? "px-4 justify-between" : "justify-center"}`}>
+        <div className={`border-b border-slate-200 h-16 flex items-center dark:border-slate-800 ${open ? "px-4 justify-between" : "justify-center"}`}>
           {open ? (
             <>
               <Link to={'/'}>
-              <h1 className="text-lg font-bold text-slate-800">
+              <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">
                 DogScan<span className="text-blue-600">AI</span>
               </h1></Link>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-slate-100"
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                 aria-label="Close sidebar"
               >
-                <X className="w-4 h-4 text-slate-700" />
+                <X className="w-4 h-4 text-slate-700 dark:text-slate-200" />
               </button>
             </>
           ) : (
             <button
               onClick={onOpen}
-              className="p-2 rounded-lg hover:bg-slate-100"
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
               aria-label="Expand sidebar"
             >
-              <Menu className="w-5 h-5 text-slate-700" />
+              <Menu className="w-5 h-5 text-slate-700 dark:text-slate-200" />
             </button>
           )}
         </div>
@@ -79,7 +79,7 @@ const Sidebar = ({ open, onOpen, onClose, onLogout }) => {
                   } ${
                     isActive
                       ? "bg-blue-600 text-white shadow-md"
-                      : "text-slate-600 hover:bg-slate-100"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`
                 }
               >
@@ -91,7 +91,7 @@ const Sidebar = ({ open, onOpen, onClose, onLogout }) => {
 
           <button
             onClick={onLogout}
-            className={`w-full flex items-center py-3 rounded-lg text-slate-600 hover:bg-slate-100 ${
+            className={`w-full flex items-center py-3 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 ${
               open ? "gap-3 px-4" : "justify-center"
             }`}
             aria-label="Logout"

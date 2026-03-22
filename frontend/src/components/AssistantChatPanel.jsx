@@ -178,13 +178,19 @@ export default function AssistantChatPanel({
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
-                msg.role === "assistant"
-                  ? "bg-slate-100 text-slate-800 text-left mr-auto"
-                  : "bg-blue-600 text-white text-right ml-auto"
+              className={`flex ${
+                msg.role === "assistant" ? "justify-start" : "justify-end"
               }`}
             >
-              {msg.content}
+              <div
+                className={`inline-block max-w-[85%] break-words rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+                  msg.role === "assistant"
+                    ? "bg-slate-100 text-slate-800"
+                    : "bg-blue-600 text-white"
+                }`}
+              >
+                {msg.content}
+              </div>
             </div>
           ))
         )}

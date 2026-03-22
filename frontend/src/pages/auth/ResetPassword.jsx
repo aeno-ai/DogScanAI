@@ -47,8 +47,8 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <div className="w-full max-w-5xl min-h-[560px] bg-white rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-[30%_70%]">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="w-full max-w-5xl min-h-[560px] bg-white rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-[30%_70%] dark:border dark:border-slate-800 dark:bg-slate-900">
         <div className="bg-blue-600 flex flex-col items-center justify-center px-6 py-12 text-white">
           <h1 className="text-2xl font-extrabold tracking-wide">DOGSCAN AI</h1>
           <div className="w-44 h-44 rounded-full bg-white flex items-center justify-center shadow-lg overflow-hidden">
@@ -58,16 +58,16 @@ const ResetPasswordPage = () => {
 
         <div className="p-12 flex flex-col justify-center">
           <div className="mb-8">
-            <h1 className="text-2xl font-extrabold text-gray-800 tracking-wide">
+            <h1 className="text-2xl font-extrabold text-gray-800 tracking-wide dark:text-slate-100">
               RESET PASSWORD
             </h1>
-            <p className="text-gray-600 mt-1 text-sm">
+            <p className="text-gray-600 mt-1 text-sm dark:text-slate-400">
               Create a new password for your account.
             </p>
           </div>
 
           {!token && (
-            <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg">
+            <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
               <p className="text-sm">
                 This reset link is missing a token. Please request a new one.
               </p>
@@ -75,7 +75,7 @@ const ResetPasswordPage = () => {
           )}
 
           {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
               <p className="text-sm">{error}</p>
             </div>
           )}
@@ -84,7 +84,7 @@ const ResetPasswordPage = () => {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300"
               >
                 New Password
               </label>
@@ -98,12 +98,12 @@ const ResetPasswordPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter new password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -117,7 +117,7 @@ const ResetPasswordPage = () => {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-300"
               >
                 Confirm Password
               </label>
@@ -131,12 +131,12 @@ const ResetPasswordPage = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm new password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400"
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -155,10 +155,10 @@ const ResetPasswordPage = () => {
               {loading ? "Resetting..." : "Reset password"}
             </button>
 
-            <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-slate-400">
               <Link
                 to="/login"
-                className="flex items-center gap-1 hover:text-blue-600"
+                className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 <svg
                   className="w-4 h-4"
@@ -177,7 +177,7 @@ const ResetPasswordPage = () => {
               </Link>
               <Link
                 to="/forgot-password"
-                className="font-semibold text-blue-600 hover:underline"
+                className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
               >
                 Request new link
               </Link>

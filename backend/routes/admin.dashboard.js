@@ -64,8 +64,35 @@ router.get("/", async (req, res) => {
           DATE_TRUNC('day', sh.scanned_at)::date AS date,
           COUNT(*)::int AS total,
           COUNT(*) FILTER (WHERE sh.scan_type = 'breed')::int AS breed,
-          COUNT(*) FILTER (WHERE sh.scan_type = 'disease')::int AS disease
+          COUNT(*) FILTER (WHERE sh.scan_type = 'disease')::int AS disease,
+          ROUND(AVG(sp.confidence)::numeric, 2) AS avg_confidence,
+          ROUND(
+            AVG(
+              CASE
+                WHEN sc.status = 'approved'
+                 AND sc.final_breed_id IS NOT NULL
+                 AND sc.model_top1_breed_id IS NOT NULL
+                  THEN CASE WHEN sc.final_breed_id = sc.model_top1_breed_id THEN 100.0 ELSE 0.0 END
+                WHEN sc.status = 'approved'
+                 AND NULLIF(TRIM(sc.final_class_name), '') IS NOT NULL
+                 AND NULLIF(TRIM(sc.model_top1_class_name), '') IS NOT NULL
+                  THEN CASE
+                    WHEN LOWER(TRIM(sc.final_class_name)) = LOWER(TRIM(sc.model_top1_class_name))
+                      THEN 100.0
+                    ELSE 0.0
+                  END
+                ELSE NULL
+              END
+            )::numeric,
+            2
+          ) AS avg_accuracy,
+          COUNT(*) FILTER (WHERE sc.status = 'approved')::int AS approved_contribution_count
          FROM scan_history sh
+         LEFT JOIN scan_predictions sp
+           ON sp.scan_id = sh.id
+          AND sp.rank = 1
+         LEFT JOIN scan_contributions sc
+           ON sc.scan_id = sh.id
          ${scansFilterSql}
          GROUP BY DATE_TRUNC('day', sh.scanned_at)
          ORDER BY date ASC`,
@@ -76,10 +103,10 @@ router.get("/", async (req, res) => {
           COALESCE(b.breed_id, sp.breed_id) AS breed_id,
           COALESCE(b.display_name, sp.display_name) AS name,
           COUNT(*)::int AS scan_count,
-          ROUND(AVG(sp.confidence)::numeric, 2) AS avg_confidence
+         ROUND(AVG(sp.confidence)::numeric, 2) AS avg_confidence
          FROM scan_predictions sp
          JOIN scan_history sh ON sh.id = sp.scan_id
-         LEFT JOIN breeds b ON b.breed_id = sp.breed_id
+         LEFT JOIN breed_catalog_view b ON b.breed_id = sp.breed_id
          WHERE sp.rank = 1
            AND sp.breed_id IS NOT NULL
            ${period.from ? "AND sh.scanned_at >= $1" : ""}
@@ -138,6 +165,11 @@ router.get("/", async (req, res) => {
         total: row.total,
         breed: row.breed,
         disease: row.disease,
+        avg_confidence:
+          row.avg_confidence == null ? null : Number(row.avg_confidence),
+        avg_accuracy:
+          row.avg_accuracy == null ? null : Number(row.avg_accuracy),
+        approved_contribution_count: Number(row.approved_contribution_count ?? 0),
       })),
       top_breeds: topBreedsResult.rows,
       recent_scans: recentScansResult.rows,

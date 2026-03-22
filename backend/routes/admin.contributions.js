@@ -5,6 +5,10 @@ const express = require("express");
 const db = require("../config/database");
 const auth = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/admin");
+const {
+  replaceApprovedSamplePredictions,
+  upsertContributionReview,
+} = require("../utils/contribution-helpers");
 
 const router = express.Router();
 
@@ -101,7 +105,7 @@ router.get("/", async (req, res) => {
   try {
     const totalResult = await db.query(
       `SELECT COUNT(*)::int AS total
-       FROM scan_contributions sc
+       FROM scan_contribution_records_view sc
        JOIN users u ON u.id = sc.user_id
        ${whereClause}`,
       params
@@ -128,7 +132,7 @@ router.get("/", async (req, res) => {
         u.username,
         u.email,
         reviewer.username AS reviewed_by_username
-       FROM scan_contributions sc
+       FROM scan_contribution_records_view sc
        JOIN users u ON u.id = sc.user_id
        LEFT JOIN users reviewer ON reviewer.id = sc.reviewed_by
        ${whereClause}
@@ -165,7 +169,7 @@ router.get("/:id", async (req, res) => {
         u.username,
         u.email,
         reviewer.username AS reviewed_by_username
-       FROM scan_contributions sc
+       FROM scan_contribution_records_view sc
        JOIN users u ON u.id = sc.user_id
        LEFT JOIN users reviewer ON reviewer.id = sc.reviewed_by
        WHERE sc.id = $1`,
@@ -219,6 +223,18 @@ router.post("/:id/approve", async (req, res) => {
       return res.status(409).json({ error: "Only pending contributions can be approved." });
     }
 
+    const contributionViewResult = await client.query(
+      `SELECT *
+       FROM scan_contribution_records_view
+       WHERE id = $1`,
+      [contributionId]
+    );
+    const contributionRecord = contributionViewResult.rows[0];
+    if (!contributionRecord) {
+      await client.query("ROLLBACK");
+      return res.status(500).json({ error: "Normalized contribution view is unavailable." });
+    }
+
     const breedResult = await client.query(
       `SELECT breed_id, class_name, display_name
        FROM breeds
@@ -231,7 +247,7 @@ router.post("/:id/approve", async (req, res) => {
     }
     const breed = breedResult.rows[0];
 
-    const approvedImageUrl = await copyToApprovedStorage(contribution.source_image_url, req);
+    const approvedImageUrl = await copyToApprovedStorage(contributionRecord.source_image_url, req);
 
     await client.query(
       `UPDATE scan_contributions
@@ -252,8 +268,17 @@ router.post("/:id/approve", async (req, res) => {
         breed.display_name,
       ]
     );
+    await upsertContributionReview(client, {
+      contributionId,
+      reviewedAt: new Date(),
+      reviewedBy: req.user.id,
+      reviewReason: noteCheck.value,
+      finalBreedId: breed.breed_id,
+      finalClassName: breed.class_name,
+      finalDisplayName: breed.display_name,
+    });
 
-    await client.query(
+    const approvedSampleResult = await client.query(
       `INSERT INTO approved_samples
         (
           contribution_id, user_id, scan_id,
@@ -262,24 +287,30 @@ router.post("/:id/approve", async (req, res) => {
           original_predictions, approved_by, note
         )
        VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11)`,
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11)
+       RETURNING id`,
       [
-        contribution.id,
-        contribution.user_id,
-        contribution.scan_id,
+        contributionRecord.id,
+        contributionRecord.user_id,
+        contributionRecord.scan_id,
         approvedImageUrl,
-        contribution.source_image_url,
+        contributionRecord.source_image_url,
         breed.breed_id,
         breed.class_name,
         breed.display_name,
-        JSON.stringify(contribution.original_predictions),
+        JSON.stringify(contributionRecord.original_predictions),
         req.user.id,
         noteCheck.value,
       ]
     );
+    await replaceApprovedSamplePredictions(
+      client,
+      approvedSampleResult.rows[0].id,
+      contributionRecord.original_predictions
+    );
 
     await writeAudit(client, req.user.id, contribution.user_id, "approve_contribution", noteCheck.value, {
-      contribution_id: contribution.id,
+      contribution_id: contributionRecord.id,
       final_breed_id: breed.breed_id,
     });
 
@@ -331,10 +362,22 @@ router.post("/:id/reject", async (req, res) => {
        SET status = 'rejected',
            reviewed_at = NOW(),
            reviewed_by = $2,
-           review_reason = $3
+           review_reason = $3,
+           final_breed_id = NULL,
+           final_class_name = NULL,
+           final_display_name = NULL
        WHERE id = $1`,
       [contributionId, req.user.id, reasonCheck.value]
     );
+    await upsertContributionReview(client, {
+      contributionId,
+      reviewedAt: new Date(),
+      reviewedBy: req.user.id,
+      reviewReason: reasonCheck.value,
+      finalBreedId: null,
+      finalClassName: null,
+      finalDisplayName: null,
+    });
 
     await writeAudit(client, req.user.id, contribution.user_id, "reject_contribution", reasonCheck.value, {
       contribution_id: contributionId,

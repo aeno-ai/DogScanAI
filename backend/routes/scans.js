@@ -9,6 +9,11 @@ const axios = require("axios");
 const router = express.Router();
 const db = require("../config/database");
 const auth = require("../middleware/auth");
+const { getBreedRow, getBreedRowsByIds } = require("../utils/breeds");
+const {
+  getTopPrediction,
+  replaceContributionPredictions,
+} = require("../utils/contribution-helpers");
 
 function normalizeBaseUrl(value) {
   if (typeof value !== "string") return "";
@@ -51,36 +56,12 @@ async function callFlask(endpoint, imageBase64) {
 }
 
 async function getBreedFromDB(breedId) {
-  const result = await db.query(
-    `SELECT
-      breed_id, class_name, display_name, image_url, size,
-      description, snout, ears, coat, tail,
-      height_min, height_max, weight_min, weight_max,
-      lifespan_min, lifespan_max, origin, breed_group, temperament,
-      health_considerations, key_health_tips, popularity_score
-     FROM breeds
-     WHERE breed_id = $1`,
-    [breedId]
-  );
-  return result.rows[0] ?? null;
+  return getBreedRow(breedId);
 }
 
 // Batched version — single query for multiple breed IDs
 async function getBreedsByIds(breedIds) {
-  const ids = [...new Set(breedIds.filter(Boolean))];
-  if (!ids.length) return {};
-  const result = await db.query(
-    `SELECT
-      breed_id, class_name, display_name, image_url, size,
-      description, snout, ears, coat, tail,
-      height_min, height_max, weight_min, weight_max,
-      lifespan_min, lifespan_max, origin, breed_group, temperament,
-      health_considerations, key_health_tips, popularity_score
-     FROM breeds
-     WHERE breed_id = ANY($1)`,
-    [ids]
-  );
-  return Object.fromEntries(result.rows.map((r) => [r.breed_id, r]));
+  return getBreedRowsByIds(breedIds);
 }
 
 function resolveImageExtension(file) {
@@ -416,6 +397,7 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
   try {
     client = await db.connect();
     await client.query("BEGIN");
+    await client.query("BEGIN");
 
     const historyResult = await client.query(
       `INSERT INTO scan_history (user_id, image_url, scan_type)
@@ -447,8 +429,8 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
 
     let trainingSubmissionStatus = "not_shared";
     if (shareForTraining) {
-      const topPrediction = predictions[0];
-      await client.query(
+      const topPrediction = getTopPrediction(predictions);
+      const contributionResult = await client.query(
         `INSERT INTO scan_contributions (
           scan_id, user_id, status,
           source_image_url, original_predictions,
@@ -457,7 +439,8 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
           $1, $2, 'pending',
           $3, $4::jsonb,
           $5, $6, $7, $8
-        )`,
+        )
+        RETURNING id`,
         [
           scanId,
           userId,
@@ -469,6 +452,7 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
           Number(topPrediction?.confidence ?? 0),
         ]
       );
+      await replaceContributionPredictions(client, contributionResult.rows[0].id, predictions);
       trainingSubmissionStatus = "pending";
     }
 
@@ -511,14 +495,15 @@ router.get("/", auth, async (req, res) => {
         sp.class_name,
         sp.display_name,
         sp.confidence,
+        b.image_url AS breed_image_url,
         b.size, b.origin, b.breed_group, b.description, b.temperament,
         b.height_min, b.height_max, b.weight_min, b.weight_max,
         b.lifespan_min, b.lifespan_max, b.snout, b.ears, b.coat, b.tail,
         b.health_considerations, b.key_health_tips
        FROM scan_history sh
-       LEFT JOIN scan_contributions sc ON sc.scan_id = sh.id
+       LEFT JOIN scan_contribution_records_view sc ON sc.scan_id = sh.id
        LEFT JOIN scan_predictions sp ON sp.scan_id = sh.id
-       LEFT JOIN breeds b ON b.breed_id = sp.breed_id
+       LEFT JOIN breed_catalog_view b ON b.breed_id = sp.breed_id
        WHERE sh.user_id = $1
        ORDER BY sh.scanned_at DESC, sh.id DESC, sp.rank ASC`,
       [userId]
@@ -548,6 +533,7 @@ router.get("/", auth, async (req, res) => {
           display_name: row.display_name,
           confidence: Number(row.confidence),
           breed_info: {
+            image_url: row.breed_image_url,
             size: row.size,
             origin: row.origin,
             breed_group: row.breed_group,
@@ -599,44 +585,73 @@ router.patch("/:id/contribute", auth, async (req, res) => {
       [scanId, userId]
     );
     if (scan.rows.length === 0) {
+      await client.query("ROLLBACK");
       return res.status(404).json({ error: "Scan not found" });
     }
 
-    // Get top prediction for this scan
+    // Reuse the stored predictions as the normalized contribution snapshot.
     const pred = await client.query(
-      `SELECT breed_id, class_name, display_name, confidence
+      `SELECT rank, breed_id, class_name, display_name, confidence
        FROM scan_predictions
        WHERE scan_id = $1
-       ORDER BY rank ASC
-       LIMIT 1`,
+       ORDER BY rank ASC`,
       [scanId]
     );
-    const top = pred.rows[0];
+    const predictions = pred.rows.map((row) => ({
+      rank: row.rank,
+      breed_id: row.breed_id,
+      class_name: row.class_name,
+      display_name: row.display_name,
+      confidence: Number(row.confidence),
+    }));
+    const top = getTopPrediction(predictions);
 
     // Upsert contribution — if already contributed, reset to pending
-    await client.query(
+    const contributionResult = await client.query(
       `INSERT INTO scan_contributions (
         scan_id, user_id, status,
         source_image_url, original_predictions,
         model_top1_breed_id, model_top1_class_name,
         model_top1_display_name, model_top1_confidence
-      ) VALUES ($1, $2, 'pending', $3, '[]'::jsonb, $4, $5, $6, $7)
+      ) VALUES ($1, $2, 'pending', $3, $4::jsonb, $5, $6, $7, $8)
       ON CONFLICT (scan_id) DO UPDATE SET
         status = 'pending',
-        updated_at = NOW()`,
+        source_image_url = EXCLUDED.source_image_url,
+        original_predictions = EXCLUDED.original_predictions,
+        model_top1_breed_id = EXCLUDED.model_top1_breed_id,
+        model_top1_class_name = EXCLUDED.model_top1_class_name,
+        model_top1_display_name = EXCLUDED.model_top1_display_name,
+        model_top1_confidence = EXCLUDED.model_top1_confidence,
+        reviewed_at = NULL,
+        reviewed_by = NULL,
+        review_reason = NULL,
+        final_breed_id = NULL,
+        final_class_name = NULL,
+        final_display_name = NULL,
+        updated_at = NOW()
+      RETURNING id`,
       [
         scanId,
         userId,
         scan.rows[0].image_url,
+        JSON.stringify(predictions),
         top?.breed_id ?? null,
         top?.class_name ?? "unknown",
         top?.display_name ?? "Unknown",
         Number(top?.confidence ?? 0),
       ]
     );
+    await replaceContributionPredictions(client, contributionResult.rows[0].id, predictions);
+    await client.query(
+      `DELETE FROM scan_contribution_reviews
+       WHERE contribution_id = $1`,
+      [contributionResult.rows[0].id]
+    );
 
+    await client.query("COMMIT");
     return res.json({ success: true, scan_id: scanId });
   } catch (err) {
+    if (client) await client.query("ROLLBACK");
     return handleDbError(err, res, "scans:contribute");
   } finally {
     if (client) client.release();

@@ -5,6 +5,7 @@ const express = require("express");
 const axios = require("axios");
 const db = require("../config/database");
 const auth = require("../middleware/auth");
+const { replaceAssistantScanContext } = require("../utils/assistant-context");
 
 const router = express.Router();
 const FLASK_URL = process.env.FLASK_API_URL;
@@ -63,7 +64,7 @@ function normalizeLimit(value, fallback = 50) {
 async function getThreadForUser(threadId, userId) {
   const result = await db.query(
     `SELECT id, user_id, thread_type, scan_context, created_at, updated_at
-     FROM assistant_threads
+     FROM assistant_thread_records_view
      WHERE id = $1 AND user_id = $2`,
     [threadId, userId]
   );
@@ -77,7 +78,7 @@ router.post("/threads/general", async (req, res) => {
   try {
     const existing = await db.query(
       `SELECT id, user_id, thread_type, scan_context, created_at, updated_at
-       FROM assistant_threads
+       FROM assistant_thread_records_view
        WHERE user_id = $1 AND thread_type = 'general'
        LIMIT 1`,
       [userId]
@@ -90,17 +91,18 @@ router.post("/threads/general", async (req, res) => {
     const inserted = await db.query(
       `INSERT INTO assistant_threads (user_id, thread_type, scan_context)
        VALUES ($1, 'general', NULL)
-       RETURNING id, user_id, thread_type, scan_context, created_at, updated_at`,
+       RETURNING id`,
       [userId]
     );
-    return res.status(201).json(inserted.rows[0]);
+    const thread = await getThreadForUser(inserted.rows[0].id, userId);
+    return res.status(201).json(thread);
   } catch (err) {
     // Protect against race conditions from double-clicks.
     if (err?.code === "23505") {
       try {
         const retry = await db.query(
           `SELECT id, user_id, thread_type, scan_context, created_at, updated_at
-           FROM assistant_threads
+           FROM assistant_thread_records_view
            WHERE user_id = $1 AND thread_type = 'general'
            LIMIT 1`,
           [userId]
@@ -124,13 +126,30 @@ router.post("/threads/scan", async (req, res) => {
   }
 
   try {
-    const inserted = await db.query(
-      `INSERT INTO assistant_threads (user_id, thread_type, scan_context)
-       VALUES ($1, 'scan', $2::jsonb)
-       RETURNING id, user_id, thread_type, scan_context, created_at, updated_at`,
-      [userId, JSON.stringify(scanContext)]
-    );
-    return res.status(201).json(inserted.rows[0]);
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      const inserted = await client.query(
+        `INSERT INTO assistant_threads (user_id, thread_type, scan_context)
+         VALUES ($1, 'scan', $2::jsonb)
+         RETURNING id`,
+        [userId, JSON.stringify(scanContext)]
+      );
+      await replaceAssistantScanContext(client, inserted.rows[0].id, scanContext);
+      const threadResult = await client.query(
+        `SELECT id, user_id, thread_type, scan_context, created_at, updated_at
+         FROM assistant_thread_records_view
+         WHERE id = $1 AND user_id = $2`,
+        [inserted.rows[0].id, userId]
+      );
+      await client.query("COMMIT");
+      return res.status(201).json(threadResult.rows[0]);
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     return handleDbError(err, res, "assistant:threads:scan");
   }

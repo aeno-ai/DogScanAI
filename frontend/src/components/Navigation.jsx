@@ -2,11 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Menu, X, Zap } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useUI } from "../context/UIContext";
+import ThemeToggle from "./ui/ThemeToggle";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user, logout } = useAuth();
+  const { isDarkModeAvailable } = useUI();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,6 +79,12 @@ const Navigation = () => {
 
         {/* Right: Auth / CTA */}
         <div className="flex items-center">
+          {isDarkModeAvailable && (
+            <ThemeToggle
+              compact
+              className="mr-3 border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+            />
+          )}
           {user ? (
             <div className="hidden md:flex items-center gap-3">
               <NavLink
@@ -174,7 +183,19 @@ const Navigation = () => {
             </a>
           ))}
 
-          <hr className="my-3 border-white/5" />
+          {isDarkModeAvailable && (
+            <>
+              <hr className="my-3 border-white/5" />
+
+              <div className="px-3 py-2">
+                <ThemeToggle
+                  className="w-full justify-center border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+                />
+              </div>
+
+              <hr className="my-3 border-white/5" />
+            </>
+          )}
 
           {user ? (
             <div className="space-y-1">

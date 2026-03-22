@@ -61,15 +61,30 @@ function getTop1Confidence(scan) {
 }
 
 function getConfidenceColor(confidence) {
-  if (confidence >= 70) return "text-green-600 bg-green-100";
-  if (confidence >= 40) return "text-yellow-600 bg-yellow-100";
-  return "text-red-600 bg-red-100";
+  if (confidence >= 70) return "bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-300";
+  if (confidence >= 40) return "bg-yellow-100 text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-300";
+  return "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300";
 }
 
 function getConfidenceBadge(confidence) {
   if (confidence >= 70) return { label: "High",   color: "bg-green-500"  };
   if (confidence >= 40) return { label: "Medium", color: "bg-yellow-500" };
   return                       { label: "Low",    color: "bg-red-500"    };
+}
+
+function getRankBadgeClasses(rank) {
+  const lightTone =
+    rank === 1
+      ? "bg-yellow-100 text-yellow-700"
+      : rank === 2
+      ? "bg-gray-200 text-gray-700"
+      : "bg-orange-100 text-orange-700";
+
+  if (rank <= 3) {
+    return `${lightTone} dark:border dark:border-blue-400/40 dark:bg-blue-500/15 dark:text-blue-300`;
+  }
+
+  return `${lightTone} dark:border dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300`;
 }
 
 function formatDate(dateString) {
@@ -85,13 +100,13 @@ function formatDate(dateString) {
 function getTrainingBadge(status) {
   switch (status) {
     case "pending":
-      return { label: "Training Pending", className: "bg-amber-100 text-amber-700" };
+      return { label: "Training Pending", className: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" };
     case "approved":
-      return { label: "Training Approved", className: "bg-green-100 text-green-700" };
+      return { label: "Training Approved", className: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300" };
     case "rejected":
-      return { label: "Training Rejected", className: "bg-red-100 text-red-700" };
+      return { label: "Training Rejected", className: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300" };
     default:
-      return { label: "Not Shared", className: "bg-slate-100 text-slate-600" };
+      return { label: "Not Shared", className: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" };
   }
 }
 
@@ -255,8 +270,8 @@ const HistoryPage = () => {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Scan History</h1>
-          <p className="text-gray-600">View and manage your dog breed identification scans</p>
+          <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-slate-100 sm:text-4xl">Scan History</h1>
+          <p className="text-gray-600 dark:text-slate-400">View and manage your dog breed identification scans</p>
         </div>
 
         {/* Stats */}
@@ -265,11 +280,11 @@ const HistoryPage = () => {
             const Icon = stat.icon;
             const value = stat.key === "avg_confidence" ? `${stats[stat.key]}%` : stats[stat.key];
             return (
-              <div key={stat.key} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div key={stat.key} className="rounded-xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
-                    <p className="text-2xl font-bold text-gray-900">{value}</p>
+                    <p className="mb-1 text-sm text-gray-600 dark:text-slate-400">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{value}</p>
                   </div>
                   <div className={`w-12 h-12 rounded-lg ${stat.color} flex items-center justify-center`}>
                     <Icon className="w-6 h-6" />
@@ -281,14 +296,14 @@ const HistoryPage = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+        <div className="mb-6 rounded-xl bg-white p-4 shadow-sm dark:border dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">Filter by Status</label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 {FILTER_STATUSES.map((s) => (
                   <option key={s.value} value={s.value}>{s.label}</option>
@@ -296,11 +311,11 @@ const HistoryPage = () => {
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">Sort By</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 {SORT_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -308,10 +323,10 @@ const HistoryPage = () => {
               </select>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-sm text-gray-600">
-              Showing <span className="font-semibold text-gray-900">{filteredScans.length}</span> of{" "}
-              <span className="font-semibold text-gray-900">{scans.length}</span> scans
+          <div className="mt-4 border-t border-gray-100 pt-4 dark:border-slate-800">
+            <p className="text-sm text-gray-600 dark:text-slate-400">
+              Showing <span className="font-semibold text-gray-900 dark:text-slate-100">{filteredScans.length}</span> of{" "}
+              <span className="font-semibold text-gray-900 dark:text-slate-100">{scans.length}</span> scans
             </p>
           </div>
         </div>
@@ -333,7 +348,7 @@ const HistoryPage = () => {
               const trainingBadge = getTrainingBadge(scan.training_status);
 
               return (
-                <div key={scan.id} className="bg-white rounded-xl shadow-sm overflow-hidden transition-shadow hover:shadow-md">
+                <div key={scan.id} className="overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md dark:border dark:border-slate-800 dark:bg-slate-900">
                   <div className="p-6">
                     <div className="flex flex-col lg:flex-row gap-6">
 
@@ -341,13 +356,13 @@ const HistoryPage = () => {
                       <div className="flex-shrink-0">
                         <div className="flex gap-2">
                           {scan.images.slice(0, 3).map((img, idx) => (
-                            <div key={idx} className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden">
+                            <div key={idx} className="h-24 w-24 overflow-hidden rounded-lg bg-gray-200 dark:bg-slate-800">
                               <img src={img} alt={`Scan ${idx + 1}`} className="w-full h-full object-cover" />
                             </div>
                           ))}
                           {scan.images.length > 3 && (
-                            <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
-                              <span className="text-gray-600 font-medium">+{scan.images.length - 3}</span>
+                            <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-gray-100 dark:bg-slate-800">
+                              <span className="font-medium text-gray-600 dark:text-slate-300">+{scan.images.length - 3}</span>
                             </div>
                           )}
                         </div>
@@ -357,8 +372,8 @@ const HistoryPage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-1">{topPrediction.breed_name}</h3>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <h3 className="mb-1 text-lg font-bold text-gray-900 dark:text-slate-100">{topPrediction.breed_name}</h3>
+                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
                               <Calendar className="w-4 h-4" />
                               <span>{formatDate(scan.created_at)}</span>
                             </div>
@@ -373,23 +388,19 @@ const HistoryPage = () => {
                           {scan.predictions.map((pred) => {
                             const displayConf = Number(pred.normalized_confidence ?? pred.confidence);
                             return (
-                              <div key={pred.rank} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div key={pred.rank} className="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-slate-800/80">
                                 <div className="flex items-center gap-3">
-                                  <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
-                                    pred.rank === 1 ? "bg-yellow-100 text-yellow-700"
-                                    : pred.rank === 2 ? "bg-gray-200 text-gray-700"
-                                    : "bg-orange-100 text-orange-700"
-                                  }`}>
+                                  <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${getRankBadgeClasses(pred.rank)}`}>
                                     {pred.rank}
                                   </div>
                                   {pred.breed_info.image_url && (
-                                   <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200">
+                                   <div className="h-10 w-10 overflow-hidden rounded-lg bg-gray-200 dark:bg-slate-700">
                                     <img src={pred.breed_info.image_url} alt={pred.breed_name} className="w-full h-full object-cover" />
                                   </div>
                                   )}
                                   <div>
-                                    <p className="font-medium text-gray-900">{pred.breed_name}</p>
-                                    <p className="text-xs text-gray-500">{pred.breed_info.temperament.slice(0, 3).join(", ")}</p>
+                                    <p className="font-medium text-gray-900 dark:text-slate-100">{pred.breed_name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-slate-400">{pred.breed_info.temperament.slice(0, 3).join(", ")}</p>
                                   </div>
                                 </div>
                                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getConfidenceColor(displayConf)}`}>
@@ -415,7 +426,7 @@ const HistoryPage = () => {
                           </span>
                         </div>
                         {scan.training_status === "rejected" && scan.training_rejection_reason && (
-                          <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
                             Rejection reason: {scan.training_rejection_reason}
                           </p>
                         )}
@@ -430,10 +441,10 @@ const HistoryPage = () => {
 
         {/* Empty state */}
         {!loading && filteredScans.length === 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No scans found</h3>
-            <p className="text-gray-600 mb-6">
+          <div className="rounded-xl bg-white p-12 text-center shadow-sm dark:border dark:border-slate-800 dark:bg-slate-900">
+            <ImageIcon className="mx-auto mb-4 h-16 w-16 text-gray-400 dark:text-slate-500" />
+            <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-slate-100">No scans found</h3>
+            <p className="mb-6 text-gray-600 dark:text-slate-400">
               {filterStatus !== "all" || sortBy !== "newest"
                 ? "Try adjusting your filters"
                 : "Start by uploading your first dog image"}

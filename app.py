@@ -228,7 +228,10 @@ ASSISTANT_BREEDS_JSON = os.path.join(BASE_DIR, "frontend", "public", "image", "c
 ASSISTANT_SYSTEM_GUIDE = os.path.join(BASE_DIR, "backend", "knowledge", "system_guide.md")
 ASSISTANT_MODEL_NAME = os.getenv("ASSISTANT_MODEL_NAME", "llama3.2-lite") # MODEL
 ASSISTANT_EMBED_MODEL_NAME = os.getenv("ASSISTANT_EMBED_MODEL_NAME", "BAAI/bge-small-en-v1.5")
-ASSISTANT_TOP_K = max(2, int(os.getenv("ASSISTANT_TOP_K", "2")))
+
+# --- FIX: Bumped from 2 to 5 so retrieval casts a wider net before filtering ---
+ASSISTANT_TOP_K = max(2, int(os.getenv("ASSISTANT_TOP_K", "5")))
+
 ASSISTANT_CONTEXT_WINDOW = _get_env_int("ASSISTANT_CONTEXT_WINDOW", 2048, 256)
 ASSISTANT_MAX_OUTPUT_TOKENS = _get_env_int("ASSISTANT_MAX_OUTPUT_TOKENS", 256, 16)
 ASSISTANT_KEEP_ALIVE = os.getenv("ASSISTANT_KEEP_ALIVE", "30s").strip() or "30s"
@@ -239,6 +242,56 @@ ASSISTANT_SCAN_CONTEXT_CHARS = _get_env_int("ASSISTANT_SCAN_CONTEXT_CHARS", 3000
 ASSISTANT_QUERY_ENGINE = None
 ASSISTANT_INIT_ERROR = None
 ASSISTANT_LLM = None
+
+
+def _build_system_guide_docs():
+    from llama_index.core import Document
+
+    if not os.path.exists(ASSISTANT_SYSTEM_GUIDE):
+        return []
+
+    with open(ASSISTANT_SYSTEM_GUIDE, "r", encoding="utf-8") as f:
+        raw_text = f.read().strip()
+
+    if not raw_text:
+        return []
+
+    docs = []
+    current_title = "System Guide"
+    current_lines = []
+
+    def flush_section():
+        nonlocal current_title, current_lines
+        body = "\n".join(current_lines).strip()
+        if not body:
+            return
+        text = f"Section: {current_title}\n\n{body}"
+        docs.append(
+            Document(
+                text=text,
+                metadata={
+                    "kind": "system_guide",
+                    "section": current_title.strip().lower(),
+                },
+            )
+        )
+
+    for line in raw_text.splitlines():
+        if line.startswith("## "):
+            flush_section()
+            current_title = line[3:].strip() or "System Guide"
+            current_lines = []
+            continue
+        if line.startswith("# "):
+            continue
+        current_lines.append(line)
+
+    flush_section()
+
+    if not docs:
+        docs.append(Document(text=raw_text, metadata={"kind": "system_guide"}))
+
+    return docs
 
 
 def _build_assistant_docs():
@@ -271,9 +324,7 @@ def _build_assistant_docs():
         """
         docs.append(Document(text=text.strip(), metadata={"kind": "breed", "breed": dog.get("display_name", "")}))
 
-    if os.path.exists(ASSISTANT_SYSTEM_GUIDE):
-        with open(ASSISTANT_SYSTEM_GUIDE, "r", encoding="utf-8") as f:
-            docs.append(Document(text=f.read(), metadata={"kind": "system_guide"}))
+    docs.extend(_build_system_guide_docs())
 
     return docs
 
@@ -312,12 +363,10 @@ def _init_assistant():
             os.makedirs(ASSISTANT_INDEX_DIR, exist_ok=True)
             index.storage_context.persist(persist_dir=ASSISTANT_INDEX_DIR)
 
-        ASSISTANT_QUERY_ENGINE = index.as_query_engine(
-            llm=llm,
-            similarity_top_k=ASSISTANT_TOP_K
-        )
+        # Store the index so we can use the retriever separately from the LLM
+        ASSISTANT_QUERY_ENGINE = index.as_retriever(similarity_top_k=ASSISTANT_TOP_K)
         ASSISTANT_INIT_ERROR = None
-        log.info("Assistant RAG engine ready")
+        log.info("Assistant RAG engine ready (TOP_K=%d)", ASSISTANT_TOP_K)
     except Exception as e:
         ASSISTANT_QUERY_ENGINE = None
         ASSISTANT_INIT_ERROR = str(e)
@@ -424,7 +473,57 @@ def _compact_scan_context(scan_context: Any) -> str:
     return _clip_text(text, ASSISTANT_SCAN_CONTEXT_CHARS)
 
 
-def _build_assistant_prompt(message: str, thread_type: str, scan_context: Any, history: list[dict[str, Any]]) -> str:
+# ---------------------------------------------------------------------------
+# FIX: Build a short, focused retrieval query from the user message +
+# breed/disease names from the scan context.  This is what gets embedded
+# and compared against the vector index — keeping it clean means the right
+# breed/disease document is actually retrieved.
+# ---------------------------------------------------------------------------
+def _build_retrieval_query(message: str, scan_context: Any) -> str:
+    parts = [message.strip()]
+
+    if isinstance(scan_context, dict):
+        # Breed scan — pull top breed display names
+        top_breeds = scan_context.get("top_breeds") or []
+        for b in top_breeds[:2]:
+            if isinstance(b, dict):
+                name = b.get("display_name") or b.get("class_name", "")
+                if name:
+                    parts.append(name)
+
+        # Disease scan — pull top disease display names
+        top_diseases = scan_context.get("top_diseases") or []
+        for d in top_diseases[:2]:
+            if isinstance(d, dict):
+                name = d.get("display_name") or d.get("class_name", "")
+                if name:
+                    parts.append(name)
+
+        # Breed comparison modal
+        breeds = scan_context.get("breeds") or []
+        for b in breeds[:2]:
+            if isinstance(b, dict):
+                name = b.get("name", "")
+                if name:
+                    parts.append(name)
+
+    query = " ".join(p for p in parts if p)
+    log.info("RAG retrieval query: %r", query)
+    return query
+
+
+# ---------------------------------------------------------------------------
+# FIX: _build_assistant_prompt now accepts retrieved_context as a separate
+# parameter so the LLM always gets the correctly fetched breed/disease docs,
+# not whatever happened to be embedded alongside the system prompt noise.
+# ---------------------------------------------------------------------------
+def _build_assistant_prompt(
+    message: str,
+    thread_type: str,
+    scan_context: Any,
+    history: list[dict[str, Any]],
+    retrieved_context: str = "",
+) -> str:
     history_text = _format_history(history)
     context_text = ""
     if thread_type == "scan" and isinstance(scan_context, dict):
@@ -448,9 +547,8 @@ Language style:
 - If the user speaks another language, reply in that language.
 - Keep answers concise and easy for first-time dog owners.
 
-Conversation memory:
-- Use the provided chat history for continuity.
-- If this is a scan thread, prioritize the provided scan context.
+Knowledge base (use this to answer accurately):
+{retrieved_context or "N/A"}
 
 Scan context (if available):
 {context_text or "N/A"}
@@ -463,11 +561,23 @@ User message:
 """.strip()
 
 
-def generate_assistant_reply(message: str, thread_type: str, scan_context: Any, history: list[dict[str, Any]]) -> str:
+# ---------------------------------------------------------------------------
+# FIX: Retrieval and generation are now two separate steps.
+# Step 1 — retrieve docs using the clean short query (_build_retrieval_query)
+# Step 2 — call the LLM with the full prompt that includes those retrieved docs
+# Previously, the full system prompt was passed directly to query_engine.query()
+# which used it as the search query, returning irrelevant documents.
+# ---------------------------------------------------------------------------
+def generate_assistant_reply(
+    message: str,
+    thread_type: str,
+    scan_context: Any,
+    history: list[dict[str, Any]],
+) -> str:
     if ASSISTANT_QUERY_ENGINE is None:
         raise RuntimeError(ASSISTANT_INIT_ERROR or "Assistant engine not initialized.")
-
-    prompt = _build_assistant_prompt(message, thread_type, scan_context, history)
+    if ASSISTANT_LLM is None:
+        raise RuntimeError("LLM not initialized.")
 
     is_breed_compare = (
         isinstance(scan_context, dict)
@@ -476,16 +586,40 @@ def generate_assistant_reply(message: str, thread_type: str, scan_context: Any, 
 
     try:
         if is_breed_compare:
-            log.info("=== breed_comparison: bypassing RAG, calling LLM directly")
-            if ASSISTANT_LLM is None:
-                raise RuntimeError("LLM not initialized.")
+            # Breed comparison already has all the data in scan_context,
+            # so we skip RAG and call the LLM directly.
+            log.info("breed_comparison: bypassing RAG, calling LLM directly")
+            prompt = _build_assistant_prompt(message, thread_type, scan_context, history)
             response = ASSISTANT_LLM.complete(prompt)
             text = str(response).strip()
         else:
-            response = ASSISTANT_QUERY_ENGINE.query(prompt)
+            # Step 1: retrieve relevant docs with a focused query
+            retrieval_query = _build_retrieval_query(message, scan_context)
+            nodes = ASSISTANT_QUERY_ENGINE.retrieve(retrieval_query)
+
+            retrieved_context = "\n\n".join(
+                n.get_content() for n in nodes if n.get_content().strip()
+            )
+            log.info(
+                "Retrieved %d nodes for query %r",
+                len(nodes),
+                retrieval_query,
+            )
+
+            # Step 2: build the full prompt with retrieved docs injected,
+            # then call the LLM directly (not query_engine.query)
+            prompt = _build_assistant_prompt(
+                message,
+                thread_type,
+                scan_context,
+                history,
+                retrieved_context=retrieved_context,
+            )
+            response = ASSISTANT_LLM.complete(prompt)
             text = str(response).strip()
+
     except Exception as e:
-        log.exception("=== LLM call failed: %s", str(e))
+        log.exception("LLM call failed: %s", str(e))
         raise
 
     if not text:

@@ -1,19 +1,44 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
+
 const {
   getTransporter,
   getFromAddress,
   isEmailEnabled,
 } = require("../utils/mailer");
+const pool = require("../config/database");
+const {
+  EMAIL_REGEX,
+  generateUniqueUsername,
+  getUserAuthStateByEmail,
+  getUserAuthStateById,
+  getUserByOAuthSubject,
+  getUserLoginStateByEmail,
+  getPasswordValidationError,
+  linkOAuthAccount,
+  normalizeEmail,
+  serializeUser,
+  signToken,
+  trimValue,
+  unbanIfExpired,
+  upsertPasswordCredential,
+} = require("../utils/auth-helpers");
+const {
+  GoogleAuthError,
+  getAllowedGoogleClientIds,
+  verifyGoogleIdToken,
+} = require("../utils/googleAuth");
+const {
+  buildPolicyAcceptanceRequiredResponse,
+  getRegistrationPolicy,
+  hasAcceptedCurrentRegistrationPolicy,
+  recordPolicyAcceptance,
+} = require("../utils/auth-policy");
 
 const router = express.Router();
 
-// file imports
-const pool = require("../config/database");
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RESET_TOKEN_BYTES = 32;
 const RESET_TOKEN_TTL_MINUTES = Math.max(
   15,
@@ -29,34 +54,18 @@ const RETURN_RESET_TOKEN =
 const REQUIRE_RESET_EMAIL =
   process.env.REQUIRE_RESET_EMAIL === "true" || process.env.NODE_ENV === "production";
 
-function buildTokenPayload(user) {
-  return {
-    userId: user.id,
-    email: user.email,
-    sv: Number(user.session_version ?? 1),
-  };
+function setAuthCookie(res, token) {
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 }
 
-function signToken(user) {
-  return jwt.sign(buildTokenPayload(user), process.env.JWT_SECRET, { expiresIn: "7d" });
-}
-
-function serializeUser(user) {
-  return {
-    id: user.id,
-    email: user.email,
-    username: user.username,
-    created_at: user.created_at,
-    is_admin: Boolean(user.is_admin),
-    is_superadmin: Boolean(user.is_superadmin),
-    is_banned: Boolean(user.is_banned),
-    banned_until: user.banned_until,
-  };
-}
-
-function normalizeEmail(raw) {
+function trimUsername(raw) {
   if (typeof raw !== "string") return "";
-  return raw.trim().toLowerCase();
+  return raw.trim();
 }
 
 function buildResetUrl(token) {
@@ -64,135 +73,146 @@ function buildResetUrl(token) {
   return `${RESET_PASSWORD_URL_BASE}${separator}token=${encodeURIComponent(token)}`;
 }
 
-async function unbanIfExpired(client, user) {
-  if (!user?.is_banned) return user;
-
-  const banEnd = user.banned_until ? new Date(user.banned_until) : null;
-  const banEndTime = banEnd ? banEnd.getTime() : NaN;
-  const hasExpired = !banEnd || Number.isNaN(banEndTime) || banEndTime <= Date.now();
-  if (!hasExpired) return user;
-
-  const updated = await client.query(
-    `UPDATE users
-     SET is_banned = FALSE,
-         banned_until = NULL,
-         ban_reason = NULL,
-         banned_at = NULL,
-         banned_by = NULL
-     WHERE id = $1
-     RETURNING id, email, username, created_at, is_admin, is_superadmin, is_banned, banned_until, ban_reason, session_version`,
-    [user.id]
-  );
-
-  return updated.rows[0] ?? user;
+function buildAuthResponsePayload(user, extra = {}) {
+  const serializedUser = serializeUser(user);
+  return {
+    user: serializedUser,
+    auth_providers: serializedUser.auth_providers,
+    ...extra,
+  };
 }
 
-// ============================================
-// REGISTER ENDPOINT
-// ============================================
+async function readAuthenticatedUserFromToken(client, req) {
+  const token =
+    req.cookies.token ||
+    (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+
+  if (!token) return { token: null, user: null, decoded: null };
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const tokenUserId = decoded?.userId ?? decoded?.id;
+  const user = await getUserAuthStateById(client, tokenUserId);
+  return { token, user, decoded };
+}
+
+function getGoogleMessage(status) {
+  if (status === "linked_existing") {
+    return "Google sign-in was linked to your existing DogScanAI account.";
+  }
+  if (status === "created_new") {
+    return "Your DogScanAI account was created with Google sign-in.";
+  }
+  return "Signed in with Google.";
+}
+
+router.get("/policy", (_req, res) => {
+  return res.json(getRegistrationPolicy());
+});
 
 router.post("/register", async (req, res) => {
   const client = await pool.connect();
+
   try {
-    const { email, password, username } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    const username = trimUsername(req.body?.username);
 
     if (!username || !email || !password) {
       return res.status(400).json({
         error: "Please provide username, email, and password!",
       });
     }
-
-    if (password.length < 8) {
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ error: "Please provide a valid email address." });
+    }
+    const passwordValidationError = getPasswordValidationError(password);
+    if (passwordValidationError) {
       return res.status(400).json({
-        error: "Password must be at least 8 characters.",
+        error: passwordValidationError,
       });
     }
+    if (!hasAcceptedCurrentRegistrationPolicy(req.body)) {
+      return res.status(428).json(buildPolicyAcceptanceRequiredResponse());
+    }
 
-    const checkQuery = "SELECT id from users WHERE email = $1 OR username = $2"; // anti sql injection haha
-    const checkResult = await client.query(checkQuery, [email, username]);
+    await client.query("BEGIN");
+
+    const checkResult = await client.query(
+      `SELECT id
+       FROM users
+       WHERE LOWER(email) = LOWER($1)
+          OR LOWER(username) = LOWER($2)
+       LIMIT 1`,
+      [email, username]
+    );
 
     if (checkResult.rows.length > 0) {
+      await client.query("ROLLBACK");
       return res.status(400).json({
         error: "Email or username already exists",
       });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const passwordHash = await bcrypt.hash(password, 10);
+    const insertResult = await client.query(
+      `INSERT INTO users (email, password_hash, username)
+       VALUES ($1, $2, $3)
+       RETURNING id`,
+      [email, passwordHash, username]
+    );
 
-    const insertQuery = `
-            INSERT INTO users (email, password_hash, username)
-            VALUES ($1, $2, $3)
-            RETURNING id, email, username, created_at, is_admin, is_superadmin, is_banned, banned_until, session_version
-        `;
+    const userId = insertResult.rows[0].id;
+    await upsertPasswordCredential(client, userId, passwordHash);
+    await recordPolicyAcceptance(client, userId, req);
 
-    const insertResult = await client.query(insertQuery, [
-      email,
-      passwordHash,
-      username,
-    ]);
-
-    const newUser = insertResult.rows[0];
+    const newUser = await getUserAuthStateById(client, userId);
+    await client.query("COMMIT");
 
     const token = signToken(newUser);
+    setAuthCookie(res, token);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered successfully",
-      token: token, // For Android
-      user: serializeUser(newUser),
+      token,
+      ...buildAuthResponsePayload(newUser),
     });
   } catch (error) {
-    console.error("Register Error: ", error);
-    res.status(500).json({ error: "Server error during registration" });
+    await client.query("ROLLBACK");
+    console.error("Register Error:", error);
+    return res.status(500).json({ error: "Server error during registration" });
   } finally {
     client.release();
   }
 });
 
-// ============================================
-// LOGIN ENDPOINT
-// ============================================
 router.post("/login", async (req, res) => {
   const client = await pool.connect();
 
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
 
-    // 1. Validation
     if (!email || !password) {
       return res.status(400).json({
         error: "Please provide email and password",
       });
     }
 
-    // 2. Find user
-    const query = `
-      SELECT
-        id, email, username, created_at, password_hash,
-        is_admin, is_superadmin, is_banned, banned_until, ban_reason, session_version
-      FROM users
-      WHERE email = $1
-    `;
-    const result = await client.query(query, [email]);
-
-    if (result.rows.length === 0) {
+    const user = await getUserLoginStateByEmail(client, email);
+    if (!user) {
       return res.status(401).json({
         error: "Invalid email or password",
       });
     }
 
-    const user = result.rows[0];
+    if (!user.password_hash) {
+      return res.status(401).json({
+        error: "This account uses Google sign-in. Continue with Google to access it.",
+        code: "PASSWORD_LOGIN_UNAVAILABLE",
+      });
+    }
 
-    // 3. Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash); // returns boolean haha
-
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json({
         error: "Invalid email or password",
@@ -209,34 +229,160 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // 4. Create JWT token
     const token = signToken(normalizedUser);
+    setAuthCookie(res, token);
 
-    // 5. Set cookie (for web)
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    // 6. Send response
-    res.json({
+    return res.json({
       message: "Login successful",
-      token: token, // For Android
-      user: serializeUser(normalizedUser),
+      token,
+      ...buildAuthResponsePayload(normalizedUser),
     });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ error: "Server error during login" });
+    return res.status(500).json({ error: "Server error during login" });
   } finally {
     client.release();
   }
 });
 
-// ============================================
-// FORGOT PASSWORD ENDPOINT
-// ============================================
+router.post("/google", async (req, res) => {
+  const allowedGoogleClientIds = getAllowedGoogleClientIds();
+  if (allowedGoogleClientIds.length === 0) {
+    return res.status(503).json({
+      error: "Google sign-in is not configured on the server.",
+      code: "GOOGLE_AUTH_NOT_CONFIGURED",
+    });
+  }
+
+  let payload;
+  try {
+    payload = await verifyGoogleIdToken(req.body?.id_token, allowedGoogleClientIds);
+  } catch (error) {
+    if (error instanceof GoogleAuthError) {
+      return res.status(error.status).json({
+        error: error.message,
+        code: error.code,
+      });
+    }
+    console.error("Google auth verification error:", error);
+    return res.status(500).json({ error: "Failed to verify Google sign-in." });
+  }
+
+  const email = normalizeEmail(payload?.email);
+  const emailVerified =
+    payload?.email_verified === true || String(payload?.email_verified) === "true";
+
+  if (!email || !EMAIL_REGEX.test(email) || !emailVerified) {
+    return res.status(400).json({
+      error: "Google account must provide a verified email address.",
+      code: "GOOGLE_EMAIL_NOT_VERIFIED",
+    });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    let user = await getUserByOAuthSubject(client, "google", payload.sub);
+    let googleAuthStatus = "existing_linked";
+
+    if (user) {
+      await linkOAuthAccount(client, {
+        userId: user.id,
+        provider: "google",
+        providerSubject: payload.sub,
+        providerEmail: email,
+        emailVerified,
+        profileName: trimValue(payload?.name) || null,
+        profileImageUrl: trimValue(payload?.picture) || null,
+      });
+      user = await getUserAuthStateById(client, user.id);
+    } else {
+      const existingUser = await getUserAuthStateByEmail(client, email);
+
+      if (existingUser) {
+        await linkOAuthAccount(client, {
+          userId: existingUser.id,
+          provider: "google",
+          providerSubject: payload.sub,
+          providerEmail: email,
+          emailVerified,
+          profileName: trimValue(payload?.name) || null,
+          profileImageUrl: trimValue(payload?.picture) || null,
+        });
+        user = await getUserAuthStateById(client, existingUser.id);
+        googleAuthStatus = "linked_existing";
+      } else {
+        if (!hasAcceptedCurrentRegistrationPolicy(req.body)) {
+          await client.query("ROLLBACK");
+          return res.status(428).json(buildPolicyAcceptanceRequiredResponse());
+        }
+
+        const username = await generateUniqueUsername(
+          client,
+          trimValue(payload?.name) || email.split("@")[0]
+        );
+        const insertResult = await client.query(
+          `INSERT INTO users (email, password_hash, username)
+           VALUES ($1, NULL, $2)
+           RETURNING id`,
+          [email, username]
+        );
+
+        await linkOAuthAccount(client, {
+          userId: insertResult.rows[0].id,
+          provider: "google",
+          providerSubject: payload.sub,
+          providerEmail: email,
+          emailVerified,
+          profileName: trimValue(payload?.name) || null,
+          profileImageUrl: trimValue(payload?.picture) || null,
+        });
+        await recordPolicyAcceptance(client, insertResult.rows[0].id, req);
+        user = await getUserAuthStateById(client, insertResult.rows[0].id);
+        googleAuthStatus = "created_new";
+      }
+    }
+
+    user = await unbanIfExpired(client, user);
+    if (user.is_banned) {
+      await client.query("ROLLBACK");
+      return res.status(403).json({
+        error: "Your account is banned.",
+        code: "ACCOUNT_BANNED",
+        banned_until: user.banned_until,
+        ban_reason: user.ban_reason || null,
+      });
+    }
+
+    await client.query("COMMIT");
+
+    const token = signToken(user);
+    setAuthCookie(res, token);
+
+    return res.json({
+      message: getGoogleMessage(googleAuthStatus),
+      token,
+      google_auth_status: googleAuthStatus,
+      google_auth_message: getGoogleMessage(googleAuthStatus),
+      ...buildAuthResponsePayload(user),
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error?.code === "OAUTH_SUBJECT_CONFLICT") {
+      return res.status(409).json({
+        error: "That Google account is already linked elsewhere.",
+        code: "GOOGLE_ACCOUNT_ALREADY_LINKED",
+      });
+    }
+    console.error("Google auth error:", error);
+    return res.status(500).json({ error: "Server error during Google sign-in" });
+  } finally {
+    client.release();
+  }
+});
+
 router.post("/forgot-password", async (req, res) => {
   const email = normalizeEmail(req.body?.email);
   if (!email || !EMAIL_REGEX.test(email)) {
@@ -250,7 +396,10 @@ router.post("/forgot-password", async (req, res) => {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `SELECT id, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+      `SELECT id, email
+       FROM users
+       WHERE LOWER(email) = LOWER($1)
+       LIMIT 1`,
       [email]
     );
 
@@ -278,6 +427,7 @@ router.post("/forgot-password", async (req, res) => {
 
     const resetUrl = buildResetUrl(token);
     let mailSent = false;
+
     if (isEmailEnabled()) {
       try {
         const transporter = await getTransporter();
@@ -331,9 +481,6 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-// ============================================
-// RESET PASSWORD ENDPOINT
-// ============================================
 router.post("/reset-password", async (req, res) => {
   const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
   const newPassword = typeof req.body?.password === "string" ? req.body.password : "";
@@ -341,10 +488,9 @@ router.post("/reset-password", async (req, res) => {
   if (!token) {
     return res.status(400).json({ error: "Reset token is required." });
   }
-  if (!newPassword || newPassword.length < 8) {
-    return res
-      .status(400)
-      .json({ error: "Password must be at least 8 characters." });
+  const passwordValidationError = getPasswordValidationError(newPassword);
+  if (passwordValidationError) {
+    return res.status(400).json({ error: passwordValidationError });
   }
 
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
@@ -352,10 +498,19 @@ router.post("/reset-password", async (req, res) => {
 
   try {
     await client.query("BEGIN");
+
     const result = await client.query(
-      `SELECT prt.id, prt.user_id, prt.expires_at, prt.used_at, u.password_hash
+      `SELECT
+         prt.id,
+         prt.user_id,
+         prt.expires_at,
+         prt.used_at,
+         upc.password_hash
        FROM password_reset_tokens prt
-       JOIN users u ON u.id = prt.user_id
+       JOIN users u
+         ON u.id = prt.user_id
+       LEFT JOIN user_password_credentials upc
+         ON upc.user_id = u.id
        WHERE prt.token_hash = $1
        LIMIT 1`,
       [tokenHash]
@@ -373,23 +528,26 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ error: "Invalid or expired reset token." });
     }
 
-    const isSameAsCurrent = await bcrypt.compare(newPassword, row.password_hash);
-    if (isSameAsCurrent) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        error: "New password must be different from current password.",
-      });
+    if (row.password_hash) {
+      const isSameAsCurrent = await bcrypt.compare(newPassword, row.password_hash);
+      if (isSameAsCurrent) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "New password must be different from current password.",
+        });
+      }
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
+    await upsertPasswordCredential(client, row.user_id, passwordHash);
+
     await client.query(
       `UPDATE users
-       SET password_hash = $1,
-           password_changed_at = NOW(),
+       SET password_changed_at = NOW(),
            session_version = session_version + 1,
            updated_at = NOW()
-       WHERE id = $2`,
-      [passwordHash, row.user_id]
+       WHERE id = $1`,
+      [row.user_id]
     );
 
     await client.query(
@@ -403,7 +561,9 @@ router.post("/reset-password", async (req, res) => {
     await client.query(
       `UPDATE password_reset_tokens
        SET used_at = NOW()
-       WHERE user_id = $1 AND used_at IS NULL AND id <> $2`,
+       WHERE user_id = $1
+         AND used_at IS NULL
+         AND id <> $2`,
       [row.user_id, row.id]
     );
 
@@ -418,49 +578,28 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-// ============================================
-// LOGOUT ENDPOINT
-// ============================================
 router.post("/logout", (req, res) => {
   res.clearCookie("token");
   res.json({ message: "Logout successful" });
 });
 
-// ============================================
-// GET CURRENT USER
-// ============================================
 router.get("/me", async (req, res) => {
   const client = await pool.connect();
 
   try {
-    // Get token from cookie (web) or Authorization header (Android)
-    const token =
-      req.cookies.token ||
-      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+    const { token, user: initialUser, decoded } = await readAuthenticatedUserFromToken(
+      client,
+      req
+    );
 
-    if (!token) {
+    if (!token || !decoded) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Get user from database
-    const query = `
-      SELECT
-        id, email, username, created_at,
-        is_admin, is_superadmin, is_banned, banned_until, ban_reason, session_version
-      FROM users
-      WHERE id = $1
-    `;
-    const tokenUserId = decoded?.userId ?? decoded?.id;
-    const result = await client.query(query, [tokenUserId]);
-
-    if (result.rows.length === 0) {
+    if (!initialUser) {
       return res.status(401).json({ error: "User not found" });
     }
 
-    const user = await unbanIfExpired(client, result.rows[0]);
+    const user = await unbanIfExpired(client, initialUser);
     if (Number(decoded?.sv ?? 1) !== Number(user.session_version ?? 1)) {
       return res.status(401).json({ error: "Session expired. Please login again." });
     }
@@ -474,17 +613,15 @@ router.get("/me", async (req, res) => {
     }
 
     const refreshedToken = signToken(user);
-    res.cookie("token", refreshedToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    setAuthCookie(res, refreshedToken);
 
-    res.json({ user: serializeUser(user), token: refreshedToken });
+    return res.json({
+      token: refreshedToken,
+      ...buildAuthResponsePayload(user),
+    });
   } catch (error) {
     console.error("Auth verification error:", error);
-    res.status(401).json({ error: "Invalid or expired token" });
+    return res.status(401).json({ error: "Invalid or expired token" });
   } finally {
     client.release();
   }

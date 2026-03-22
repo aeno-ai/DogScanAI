@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [created_at, setCreatedAt] = useState(null);
   const [token, setToken] = useState(() => {
     try {
       return localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -71,12 +70,29 @@ export const AuthProvider = ({ children }) => {
         if (withLoading) setLoading(false);
       }
     },
-    []
+    [token]
   );
+
+  const applyAuthSuccess = useCallback((payload) => {
+    const nextUser = payload?.user ?? payload ?? null;
+    setUser(nextUser);
+
+    if (payload?.token) {
+      setToken(payload.token);
+      try {
+        localStorage.setItem(TOKEN_STORAGE_KEY, payload.token);
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    setError(null);
+    return nextUser;
+  }, []);
 
   useEffect(() => {
     refreshUser({ withLoading: true });
-  }, []);
+  }, [refreshUser]);
 
 
   // =================== REGISTER ==================
@@ -89,7 +105,7 @@ export const AuthProvider = ({ children }) => {
    * @returns {Object} { success: boolean, error?: string }
    */
 
-  const register = async (email, password, username) => {
+  const register = async (email, password, username, policyAcceptance = null) => {
     // dito napapasa yung galing sa input
     try {
       setError(null);
@@ -99,17 +115,10 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
         username,
+        ...(policyAcceptance || {}),
       });
 
-      setUser(response.data.user);
-      if (response.data?.token) {
-        setToken(response.data.token);
-        try {
-          localStorage.setItem(TOKEN_STORAGE_KEY, response.data.token);
-        } catch {
-          // ignore storage errors
-        }
-      }
+      applyAuthSuccess(response.data);
 
       return { success: true };
     } catch (error) {
@@ -120,6 +129,9 @@ export const AuthProvider = ({ children }) => {
       return {
         success: false,
         error: errorMessage,
+        code: error.response?.data?.code || null,
+        policy_key: error.response?.data?.policy_key || null,
+        policy_version: error.response?.data?.policy_version || null,
       };
     }
   };
@@ -133,7 +145,7 @@ export const AuthProvider = ({ children }) => {
    * @returns {Object} { success: boolean, error?: string }
    */
 
-  const login = async (email, password, created_at) => {
+  const login = async (email, password) => {
     try {
       setError(null);
 
@@ -141,21 +153,10 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post("/api/auth/login", {
         email,
         password,
-        created_at
       });
 
       // Success! Update user state
-      const nextUser = response.data.user;
-      setUser(nextUser);
-      setCreatedAt(response.data.created_at); // set kung kailan siya na create
-      if (response.data?.token) {
-        setToken(response.data.token);
-        try {
-          localStorage.setItem(TOKEN_STORAGE_KEY, response.data.token);
-        } catch {
-          // ignore storage errors
-        }
-      }
+      const nextUser = applyAuthSuccess(response.data);
 
       return { success: true, user: nextUser };
     } catch (error) {
@@ -171,6 +172,45 @@ export const AuthProvider = ({ children }) => {
         ban_reason: payload.ban_reason || null,
       };
     }
+  };
+
+  const loginWithGoogle = async (idToken, policyAcceptance = null) => {
+    try {
+      setError(null);
+
+      const response = await api.post("/api/auth/google", {
+        id_token: idToken,
+        ...(policyAcceptance || {}),
+      });
+
+      const nextUser = applyAuthSuccess(response.data);
+
+      return {
+        success: true,
+        user: nextUser,
+        google_auth_status: response.data?.google_auth_status ?? null,
+        google_auth_message: response.data?.google_auth_message ?? null,
+      };
+    } catch (error) {
+      const payload = error.response?.data || {};
+      const errorMessage = payload.error || "Google sign-in failed";
+      setError(errorMessage);
+
+      return {
+        success: false,
+        error: errorMessage,
+        code: payload.code || null,
+        banned_until: payload.banned_until || null,
+        ban_reason: payload.ban_reason || null,
+        policy_key: payload.policy_key || null,
+        policy_version: payload.policy_version || null,
+      };
+    }
+  };
+
+  const getAuthPolicy = async () => {
+    const response = await api.get("/api/auth/policy");
+    return response.data;
   };
 
   // ============================================
@@ -217,10 +257,11 @@ export const AuthProvider = ({ children }) => {
     error, // Any auth error message
     register, // Function to register
     login, // Function to login
+    loginWithGoogle,
+    getAuthPolicy,
     logout, // Function to logout
     refreshUser, // Re-fetch authenticated user
     isAuthenticated: !!user, // Boolean: is user logged in?
-    created_at, // kung kelan ginawa
     token, // JWT token for Authorization header
   };
 
